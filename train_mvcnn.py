@@ -2,8 +2,7 @@ import argparse
 import json
 import os
 import shutil
-import faulthandler
-import sys
+import wandb
 
 import torch
 import torch.nn as nn
@@ -17,7 +16,7 @@ parser.add_argument(
     "-name", "--name", type=str, help="Name of the experiment", default="MVCNN"
 )
 parser.add_argument(
-    "-bs", "--batchSize", type=int, help="Batch size for the second stage", default=8
+    "-bs", "--batchSize", type=int, help="Batch size for the second stage", default=4
 )  # it will be *12 images in each batch for mvcnn
 parser.add_argument(
     "-num_models", type=int, help="number of models per class", default=1000
@@ -43,24 +42,41 @@ def create_folder(log_dir):
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     else:
-        print("WARNING: summary folder already exists!! It will be overwritten!!")
-        shutil.rmtree(log_dir)
-        os.mkdir(log_dir)
+        raise ValueError(
+            "ERROR: Please change the name of the run model to avoid duplication"
+        )
+        # print("WARNING: summary folder already exists!! It will be overwritten!!")
+        # shutil.rmtree(log_dir)
+        # os.mkdir(log_dir)
 
 
 if __name__ == "__main__":
-    faulthandler.enable(file=sys.stderr, all_threads=True)
     args = parser.parse_args()
+    wandb.init(
+        project="test-project",
+        entity="icheler-team",
+        name=f"{args.name}_stage_1",
+        tags=["stage1"],
+        config={
+            "name": args.name,
+            "num_models": args.num_models,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "no_pretraining": args.no_pretraining,
+            "cnn_name": args.cnn_name,
+            "num_views": args.num_views,
+        },
+    )
 
     pretraining = not args.no_pretraining
-    log_dir = args.name
-    create_folder(args.name)
+    log_dir = f"runs/{args.name}"
+    create_folder(log_dir)
     config_f = open(os.path.join(log_dir, "config.json"), "w")
     json.dump(vars(args), config_f)
     config_f.close()
 
     # STAGE 1
-    log_dir = args.name + "_stage_1"
+    log_dir = f"runs/{args.name}/stage_1"
     create_folder(log_dir)
     cnet = SVCNN(
         args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name
@@ -101,10 +117,27 @@ if __name__ == "__main__":
         log_dir,
         num_views=1,
     )
-    trainer.train(30)
+    trainer.train(1)
+    wandb.finish()
 
     # STAGE 2
-    log_dir = args.name + "_stage_2"
+
+    wandb.init(
+        project="test-project",
+        entity="icheler-team",
+        name=f"{args.name}_stage_2",
+        tags=["stage2"],
+        config={
+            "name": args.name,
+            "num_models": args.num_models,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "no_pretraining": args.no_pretraining,
+            "cnn_name": args.cnn_name,
+            "num_views": args.num_views,
+        },
+    )
+    log_dir = f"runs/{args.name}/stage_2"
     create_folder(log_dir)
     cnet_2 = MVCNN(
         args.name, cnet, nclasses=40, cnn_name=args.cnn_name, num_views=args.num_views
@@ -147,4 +180,5 @@ if __name__ == "__main__":
         log_dir,
         num_views=args.num_views,
     )
-    trainer.train(30)
+    trainer.train(1)
+    wandb.finish()

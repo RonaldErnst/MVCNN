@@ -90,7 +90,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
             for i in range(len(rand_idx)):
                 filepaths_new.extend(
                     self.filepaths[
-                        rand_idx[i] * num_views: (rand_idx[i] + 1) * num_views
+                        rand_idx[i] * num_views : (rand_idx[i] + 1) * num_views
                     ]
                 )
             self.filepaths = filepaths_new
@@ -133,7 +133,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         return (
             class_id,
             torch.stack(imgs),
-            self.filepaths[idx * self.num_views: (idx + 1) * self.num_views],
+            self.filepaths[idx * self.num_views : (idx + 1) * self.num_views],
         )
 
 

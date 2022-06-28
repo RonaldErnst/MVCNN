@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import wandb
 
 # import torch.nn as nn
 from tensorboardX import SummaryWriter
@@ -92,6 +93,14 @@ class ModelNetTrainer(object):
                     i + 1,
                     loss,
                     acc,
+                )
+                wandb.log(
+                    {
+                        "epoch": epoch + 1,
+                        "step": i + 1,
+                        "train_loss": loss,
+                        "train_acc": acc,
+                    }
                 )
                 if (i + 1) % 1 == 0:
                     print(log_str)

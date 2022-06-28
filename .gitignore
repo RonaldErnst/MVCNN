@@ -55,3 +55,7 @@ docs/_build/
 
 data/modelnet40_images_new_12x
 data/ModelNet40
+
+wandb/
+runs/*
+!runs/.gitkeep
