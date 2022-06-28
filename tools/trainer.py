@@ -96,10 +96,12 @@ class ModelNetTrainer(object):
                 )
                 wandb.log(
                     {
-                        "epoch": epoch + 1,
-                        "step": i + 1,
-                        "train_loss": loss,
-                        "train_acc": acc,
+                        "train": {
+                            "epoch": epoch + 1,
+                            "step": i + 1,
+                            "train_loss": loss,
+                            "train_acc": acc,
+                        }
                     }
                 )
                 if (i + 1) % 1 == 0:
@@ -121,6 +123,18 @@ class ModelNetTrainer(object):
                     "val/val_overall_acc", val_overall_acc, epoch + 1
                 )
                 self.writer.add_scalar("val/val_loss", loss, epoch + 1)
+
+                wandb.log(
+                    {
+                        "val": {
+                            "epoch": epoch + 1,
+                            "step": i + 1,
+                            "loss": loss,
+                            "val_overall_acc": val_overall_acc,
+                            "val_mean_class_acc": val_mean_class_acc,
+                        }
+                    }
+                )
 
             # save best model
             if val_overall_acc > best_acc:
