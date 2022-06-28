@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models
 from torch.autograd import Variable
-
+import torchvision.models as models
 from .model import Model
 
 mean = Variable(torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False).cuda()

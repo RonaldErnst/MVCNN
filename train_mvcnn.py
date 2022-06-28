@@ -2,13 +2,15 @@ import argparse
 import json
 import os
 import shutil
+import faulthandler
+import sys
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from models.MVCNN import MVCNN, SVCNN
 from tools.img_dataset import MultiviewImgDataset, SingleImgDataset
 from tools.trainer import ModelNetTrainer
+from models.MVCNN import MVCNN, SVCNN
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -47,6 +49,7 @@ def create_folder(log_dir):
 
 
 if __name__ == "__main__":
+    faulthandler.enable(file=sys.stderr, all_threads=True)
     args = parser.parse_args()
 
     pretraining = not args.no_pretraining
