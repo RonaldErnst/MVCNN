@@ -3,7 +3,6 @@ import torch
 import wandb
 
 # import torch.nn as nn
-from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 
 
@@ -30,8 +29,6 @@ class ModelNetTrainer(object):
         self.num_views = num_views
 
         self.model.cuda()
-        if self.log_dir is not None:
-            self.writer = SummaryWriter(log_dir)
 
     def train(self, n_epochs):
 
@@ -56,7 +53,6 @@ class ModelNetTrainer(object):
 
             # plot learning rate
             lr = self.optimizer.state_dict()["param_groups"][0]["lr"]
-            self.writer.add_scalar("params/lr", lr, epoch)
 
             # train one epoch
             out_data = None
@@ -76,14 +72,11 @@ class ModelNetTrainer(object):
 
                 loss = self.loss_fn(out_data, target)
 
-                self.writer.add_scalar("train/train_loss", loss, i_acc + i + 1)
-
                 pred = torch.max(out_data, 1)[1]
                 results = pred == target
                 correct_points = torch.sum(results.long())
 
                 acc = correct_points.float() / results.size()[0]
-                self.writer.add_scalar("train/train_overall_acc", acc, i_acc + i + 1)
 
                 loss.backward()
                 self.optimizer.step()
@@ -116,13 +109,6 @@ class ModelNetTrainer(object):
                         val_overall_acc,
                         val_mean_class_acc,
                     ) = self.update_validation_accuracy(epoch)
-                self.writer.add_scalar(
-                    "val/val_mean_class_acc", val_mean_class_acc, epoch + 1
-                )
-                self.writer.add_scalar(
-                    "val/val_overall_acc", val_overall_acc, epoch + 1
-                )
-                self.writer.add_scalar("val/val_loss", loss, epoch + 1)
 
                 wandb.log(
                     {
@@ -145,10 +131,6 @@ class ModelNetTrainer(object):
             if epoch > 0 and (epoch + 1) % 10 == 0:
                 for param_group in self.optimizer.param_groups:
                     param_group["lr"] = param_group["lr"] * 0.5
-
-        # export scalar data to JSON for external processing
-        self.writer.export_scalars_to_json(self.log_dir + "/all_scalars.json")
-        self.writer.close()
 
     def update_validation_accuracy(self, epoch):
         all_correct_points = 0

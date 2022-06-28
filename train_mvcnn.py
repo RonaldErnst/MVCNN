@@ -117,7 +117,7 @@ if __name__ == "__main__":
         log_dir,
         num_views=1,
     )
-    trainer.train(1)
+    trainer.train(30)
     wandb.finish()
 
     # STAGE 2
@@ -180,5 +180,5 @@ if __name__ == "__main__":
         log_dir,
         num_views=args.num_views,
     )
-    trainer.train(1)
+    trainer.train(30)
     wandb.finish()
