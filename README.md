@@ -1,6 +1,6 @@
 # MVCNN
 
-# How to freeze layers
+# How to freeze layers [pytorch link](https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#convnet-as-fixed-feature-extractor)
 ```
 for param in model.parameters():
     param.requires_grad = False
