@@ -116,14 +116,14 @@ if __name__ == "__main__":
             num_views=args.num_views,
         )
         train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=64, shuffle=True, num_workers=4
+            train_dataset, batch_size=32, shuffle=True, num_workers=4
         )
 
         val_dataset = SingleImgDataset(
             args.val_path, scale_aug=False, rot_aug=False, test_mode=True
         )
         val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=64, shuffle=False, num_workers=4
+            val_dataset, batch_size=32, shuffle=False, num_workers=4
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -170,15 +170,13 @@ if __name__ == "__main__":
     for parameters in cnet_2.parameters():
         parameters.requires_grad = False
 
-    # Add new last layer
+    # Reactivate last layer
     if cnet_2.use_resnet:
-        in_ftrs = cnet_2.net_2.in_features
-        out_ftrs = cnet_2.net_2.out_features
-        cnet_2.net_2 = nn.Linear(in_ftrs, out_ftrs)
+        for params in cnet_2.net_2.parameters():
+            params.requires_grad = True
     else:
-        in_ftrs = cnet_2.net_2._modules["6"].in_features
-        out_ftrs = cnet_2.net_2._modules["6"].out_features
-        cnet_2.net_2._modules["6"] = nn.Linear(in_ftrs, out_ftrs)
+        for params in cnet_2.net_2._modules["6"].parameters():
+            params.requires_grad = True
 
     for params in cnet_2.parameters():
         print(params.requires_grad)
