@@ -55,7 +55,11 @@ docs/_build/
 
 data/modelnet40_images_new_12x
 data/ModelNet40
+data/cifar-100-python
+data/food-101
 
 wandb/
 runs/*
 !runs/.gitkeep
+
+envs
