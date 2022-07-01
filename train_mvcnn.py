@@ -73,13 +73,13 @@ if __name__ == "__main__":
     if args.use_pretrained_svcnn:
         # Load SVCNN
         cnet = SVCNN(
-            "svcnn_resnet18",
+            "mvcnn_resnet50_1",
             nclasses=40,
             pretraining=pretraining,
             cnn_name=args.cnn_name
         )
 
-        path = "runs/svcnn_resnet18/stage_1"
+        path = "runs/mvcnn_resnet50_1/stage_1"
         cnet.load(path)
     else:
         wandb.init(
