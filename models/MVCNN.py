@@ -90,6 +90,19 @@ class SVCNN(Model):
             elif self.cnn_name == "resnet50":
                 self.net = models.resnet50(pretrained=self.pretraining)
                 self.net.fc = nn.Linear(2048, 40)
+            elif self.cnn_name == "resnet18-deep":
+                self.net = models.resnet18(pretrained=self.pretraining)
+                self.net.fc = nn.Sequential(
+                    nn.Linear(512, 256),
+                    nn.BatchNorm1d(256),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(256, 128),
+                    nn.BatchNorm1d(128),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(128, 40)
+                )
         else:
             if self.cnn_name == "alexnet":
                 self.net_1 = models.alexnet(pretrained=self.pretraining).features

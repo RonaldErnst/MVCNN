@@ -51,9 +51,11 @@ def create_folder(log_dir):
 
 
 if __name__ == "__main__":
+    project_name = 'test-project'
+
     args = parser.parse_args()
     wandb.init(
-        project="test-project",
+        project=project_name,
         entity="icheler-team",
         name=f"{args.name}_stage_1",
         tags=["stage1"],
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     # STAGE 2
 
     wandb.init(
-        project="test-project",
+        project=project_name,
         entity="icheler-team",
         name=f"{args.name}_stage_2",
         tags=["stage2"],
