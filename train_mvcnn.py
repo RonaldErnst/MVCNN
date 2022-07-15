@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import shutil
 import wandb
 
 import torch
@@ -51,7 +50,7 @@ def create_folder(log_dir):
 
 
 if __name__ == "__main__":
-    project_name = 'test-project'
+    project_name = 'r-convnext-modelnet'
 
     args = parser.parse_args()
     wandb.init(
@@ -119,7 +118,8 @@ if __name__ == "__main__":
         log_dir,
         num_views=1,
     )
-    trainer.train(30)
+    # TODO trainer.train(30)
+    trainer.train(1)
     wandb.finish()
 
     # STAGE 2
@@ -182,5 +182,6 @@ if __name__ == "__main__":
         log_dir,
         num_views=args.num_views,
     )
-    trainer.train(30)
+    # TODO trainer.train(30)
+    trainer.train(1)
     wandb.finish()

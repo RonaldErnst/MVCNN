@@ -23,7 +23,7 @@ def flip(x, dim):
 
 
 class SVCNN(Model):
-    def __init__(self, name, nclasses=40, pretraining=True, cnn_name="vgg11"):
+    def __init__(self, name, nclasses=40, pretraining=True, cnn_name="resnet18"):
         super(SVCNN, self).__init__(name)
 
         self.classnames = [
@@ -83,49 +83,27 @@ class SVCNN(Model):
         if self.use_resnet:
             if self.cnn_name == "resnet18":
                 self.net = models.resnet18(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(512, 40)
+                self.net.fc = nn.Linear(512, self.nclasses)
             elif self.cnn_name == "resnet34":
                 self.net = models.resnet34(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(512, 40)
+                self.net.fc = nn.Linear(512, self.nclasses)
             elif self.cnn_name == "resnet50":
                 self.net = models.resnet50(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(2048, 40)
-            elif self.cnn_name == "resnet18-deep":
-                self.net = models.resnet18(pretrained=self.pretraining)
-                self.net.fc = nn.Sequential(
-                    nn.Linear(512, 256),
-                    nn.BatchNorm1d(256),
-                    nn.ReLU(),
-                    nn.Dropout(),
-                    nn.Linear(256, 128),
-                    nn.BatchNorm1d(128),
-                    nn.ReLU(),
-                    nn.Dropout(),
-                    nn.Linear(128, 40)
-                )
+                self.net.fc = nn.Linear(2048, self.nclasses)
         else:
-            if self.cnn_name == "alexnet":
-                self.net_1 = models.alexnet(pretrained=self.pretraining).features
-                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
-            elif self.cnn_name == "vgg11":
-                self.net_1 = models.vgg11(pretrained=self.pretraining).features
-                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
-            elif self.cnn_name == "vgg16":
-                self.net_1 = models.vgg16(pretrained=self.pretraining).features
-                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
-
-            self.net_2._modules["6"] = nn.Linear(4096, 40)
+            if self.cnn_name == "inception":
+                self.net = models.inception_v3(pretrained=self.pretraining)
+                self.net.fc = nn.Linear(2048, self.nclasses)
+            elif self.cnn_name == "convnext":
+                self.net = models.convnext_base(pretrained=self.pretraining)
+                self.net.classifier._modules["2"] = nn.Linear(1024, self.nclasses)
 
     def forward(self, x):
-        if self.use_resnet:
-            return self.net(x)
-        else:
-            y = self.net_1(x)
-            return self.net_2(y.view(y.shape[0], -1))
+        return self.net(x)
 
 
 class MVCNN(Model):
-    def __init__(self, name, model, nclasses=40, cnn_name="vgg11", num_views=12):
+    def __init__(self, name, model, nclasses=40, cnn_name="resnet18", num_views=12):
         super(MVCNN, self).__init__(name)
 
         self.classnames = [
@@ -186,8 +164,12 @@ class MVCNN(Model):
             self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
             self.net_2 = model.net.fc
         else:
-            self.net_1 = model.net_1
-            self.net_2 = model.net_2
+            if self.cnn_name == "inception":
+                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
+                self.net_2 = model.net.fc
+            elif self.cnn_name == "convnext":
+                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
+                self.net_2 = model.net.classifier._modules["2"]
 
     def forward(self, x):
         y = self.net_1(x)
