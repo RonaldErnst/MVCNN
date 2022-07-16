@@ -51,7 +51,12 @@ def create_folder(log_dir):
 
 
 if __name__ == "__main__":
-    project_name = 'test-project'
+    num_epochs = 2
+    if num_epochs > 10:
+        project_name = "test-project"
+    else:
+        project_name = "i-quick"
+    num_workers = 4
 
     args = parser.parse_args()
     wandb.init(
@@ -98,14 +103,14 @@ if __name__ == "__main__":
         num_views=args.num_views,
     )
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=64, shuffle=True, num_workers=0
+        train_dataset, batch_size=32, shuffle=True, num_workers=num_workers
     )
 
     val_dataset = SingleImgDataset(
         args.val_path, scale_aug=False, rot_aug=False, test_mode=True
     )
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=64, shuffle=False, num_workers=0
+        val_dataset, batch_size=32, shuffle=False, num_workers=num_workers
     )
     print("num_train_files: " + str(len(train_dataset.filepaths)))
     print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -119,7 +124,7 @@ if __name__ == "__main__":
         log_dir,
         num_views=1,
     )
-    trainer.train(30)
+    trainer.train(num_epochs)
     wandb.finish()
 
     # STAGE 2
@@ -161,14 +166,14 @@ if __name__ == "__main__":
         num_views=args.num_views,
     )
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=0
+        train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=num_workers
     )  # shuffle needs to be false! it's done within the trainer
 
     val_dataset = MultiviewImgDataset(
         args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
     )
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=0
+        val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=num_workers
     )
     print("num_train_files: " + str(len(train_dataset.filepaths)))
     print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -182,5 +187,5 @@ if __name__ == "__main__":
         log_dir,
         num_views=args.num_views,
     )
-    trainer.train(30)
+    trainer.train(num_epochs)
     wandb.finish()

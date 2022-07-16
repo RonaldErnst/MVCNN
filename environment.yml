@@ -177,4 +177,3 @@ dependencies:
   - zstd=1.4.9
   - pip:
     - pyyaml==6.0
-prefix: /home/ingo/anaconda3/envs/mvcnn
