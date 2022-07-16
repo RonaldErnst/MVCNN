@@ -45,14 +45,14 @@ class ModelNetTrainer(object):
                 filepaths_new.extend(
                     self.train_loader.dataset.filepaths[
                         rand_idx[i]
-                        * self.num_views : (rand_idx[i] + 1)
+                        * self.num_views: (rand_idx[i] + 1)
                         * self.num_views
                     ]
                 )
             self.train_loader.dataset.filepaths = filepaths_new
 
             # plot learning rate
-            lr = self.optimizer.state_dict()["param_groups"][0]["lr"]
+            # lr = self.optimizer.state_dict()["param_groups"][0]["lr"]
 
             # train one epoch
             out_data = None
