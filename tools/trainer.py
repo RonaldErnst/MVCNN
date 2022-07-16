@@ -48,7 +48,7 @@ class ModelNetTrainer(object):
             checkpoint = torch.load(wandb.restore(complete_path))
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            epoch = checkpoint['epoch']
+            epoch = checkpoint['epoch'] + 1
             loss = checkpoint['loss']
 
         while epoch < n_epochs:
