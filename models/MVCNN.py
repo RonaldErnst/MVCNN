@@ -106,6 +106,18 @@ class SVCNN(Model):
             elif self.cnn_name == "convnext_tiny":
                 self.net = models.convnext_tiny(pretrained=self.pretraining)
                 self.net.classifier._modules["2"] = nn.Linear(768, self.nclasses)
+            elif self.cnn_name == "convnext_tiny_deep":
+                self.net = models.convnext_tiny(pretrained=self.pretraining)
+                self.net.fc = nn.Sequential(
+                    nn.Dropout(),
+                    nn.Linear(768, 768),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout(),
+                    nn.Linear(768, 768),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(768, self.nclasses),
+                )
+                self.net.classifier._modules["2"] = self.net.fc
             elif self.cnn_name == "convnext_base":
                 self.net = models.convnext_base(pretrained=self.pretraining)
                 self.net.classifier._modules["2"] = nn.Linear(1024, self.nclasses)
@@ -163,6 +175,7 @@ class MVCNN(Model):
 
         self.nclasses = nclasses
         self.num_views = num_views
+        self.cnn_name = cnn_name
         self.mean = Variable(
             torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False
         ).cuda()

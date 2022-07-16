@@ -48,6 +48,7 @@ parser.add_argument(
 parser.add_argument("-stage", type=int, default=1)
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-freeze", type=bool, default=True)
+parser.add_argument("-continue_training", type=bool, default=False)
 parser.set_defaults(train=False)
 
 
@@ -110,6 +111,9 @@ if __name__ == "__main__":
             cnn_name=args.cnn_name
         )
 
+        if args.continue_training:
+            cnet.load(log_dir)
+
         optimizer = optim.Adam(
             cnet.parameters(),
             lr=args.lr,
@@ -158,6 +162,7 @@ if __name__ == "__main__":
         wandb.finish()
 
     elif args.stage == 2:
+        # STAGE 2
         if args.svcnn_name == "":
             print("SVCNN Model name required")
             sys.exit()
@@ -168,10 +173,21 @@ if __name__ == "__main__":
             pretraining=False,
             cnn_name=args.cnn_name
         )
-
         cnet.load(f"runs/{args.svcnn_name}/stage_1")
 
-        # STAGE 2
+        cnet_2 = MVCNN(
+            args.name,
+            cnet,
+            nclasses=40,
+            cnn_name=args.cnn_name,
+            num_views=args.num_views
+        )
+        del cnet
+
+        log_dir = f"runs/{args.name}/stage_2"
+        create_folder(log_dir)
+        if args.continue_training:
+            cnet_2.load(log_dir)
 
         wandb.init(
             project=project_name,
@@ -189,17 +205,6 @@ if __name__ == "__main__":
                 "num_views": args.num_views,
             },
         )
-        log_dir = f"runs/{args.name}/stage_2"
-        create_folder(log_dir)
-        cnet_2 = MVCNN(
-            args.name,
-            cnet,
-            nclasses=40,
-            cnn_name=args.cnn_name,
-            num_views=args.num_views
-        )
-
-        del cnet
 
         # Freeze first part of net to improve training time / enable transfer learning
         if args.freeze:
