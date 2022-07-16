@@ -87,7 +87,7 @@ class ModelNetTrainer(object):
                     i + 1,
                     loss,
                     acc,
-                    i / len(self.train_loader)
+                    i * 100 / len(self.train_loader)
                 )
                 wandb.log(
                     {
@@ -184,7 +184,7 @@ class ModelNetTrainer(object):
                     index + 1,
                     loss,
                     curr_acc,
-                    index / len(self.val_loader)
+                    index * 100 / len(self.val_loader)
                 )
 
             print(log_str)
