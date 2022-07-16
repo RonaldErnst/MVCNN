@@ -100,9 +100,6 @@ class SVCNN(Model):
             elif self.cnn_name == "vgg16":
                 self.net_1 = models.vgg16(pretrained=self.pretraining).features
                 self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
-            elif self.cnn_name == "inception":
-                self.net = models.inception_v3(pretrained=self.pretraining)
-                self.net.fc = nn.Linear(2048, self.nclasses)
             elif self.cnn_name == "convnext_tiny":
                 self.net = models.convnext_tiny(pretrained=self.pretraining)
                 self.net.classifier._modules["2"] = nn.Linear(768, self.nclasses)
@@ -118,9 +115,6 @@ class SVCNN(Model):
                     nn.Linear(768, self.nclasses),
                 )
                 self.net.classifier._modules["2"] = self.net.fc
-            elif self.cnn_name == "convnext_base":
-                self.net = models.convnext_base(pretrained=self.pretraining)
-                self.net.classifier._modules["2"] = nn.Linear(1024, self.nclasses)
 
     def forward(self, x):
         return self.net(x)
@@ -193,10 +187,7 @@ class MVCNN(Model):
                     or self.cnn_name == "vgg16":
                 self.net_1 = model.net_1
                 self.net_2 = model.net_2
-            if self.cnn_name == "inception":
-                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
-                self.net_2 = model.net.fc
-            elif self.cnn_name == "convnext_tiny" or self.cnn_name == "convnext_base":
+            elif self.cnn_name == "convnext_tiny":
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.net_2 = model.net.classifier._modules["2"]
 
