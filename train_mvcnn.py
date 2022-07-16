@@ -52,11 +52,11 @@ parser.add_argument("-continue_training", type=bool, default=False)
 parser.set_defaults(train=False)
 
 
-def create_folder(log_dir):
+def create_folder(log_dir, continue_training=False):
     # make summary folder
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
-    else:
+    elif not continue_training:  # Dont throw error when continue training
         raise ValueError(
             "ERROR: Please change the name of the run model to avoid duplication"
         )
@@ -80,6 +80,7 @@ if __name__ == "__main__":
         wandb.init(
             project=project_name,
             entity="icheler-team",
+            resume=args.continue_training,
             name=f"{args.name}_stage_1",
             tags=["stage1"],
             config={
@@ -91,19 +92,19 @@ if __name__ == "__main__":
                 "no_pretraining": args.no_pretraining,
                 "cnn_name": args.cnn_name,
                 "num_views": args.num_views,
-            },
+            }
         )
 
         pretraining = not args.no_pretraining
         log_dir = f"runs/{args.name}"
-        create_folder(log_dir)
+        create_folder(log_dir, args.continue_training)
         config_f = open(os.path.join(log_dir, "config.json"), "w")
         json.dump(vars(args), config_f)
         config_f.close()
 
         # STAGE 1
         log_dir = f"runs/{args.name}/stage_1"
-        create_folder(log_dir)
+        create_folder(log_dir, args.continue_training)
         cnet = SVCNN(
             args.name,
             nclasses=40,
@@ -185,13 +186,14 @@ if __name__ == "__main__":
         del cnet
 
         log_dir = f"runs/{args.name}/stage_2"
-        create_folder(log_dir)
+        create_folder(log_dir, args.continue_training)
         if args.continue_training:
             cnet_2.load(log_dir)
 
         wandb.init(
             project=project_name,
             entity="icheler-team",
+            resume=args.continue_training,
             name=f"{args.name}_stage_2",
             tags=["stage2"],
             config={
