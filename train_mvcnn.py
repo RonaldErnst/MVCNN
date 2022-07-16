@@ -39,6 +39,12 @@ parser.add_argument(
 parser.add_argument(
     "-val_path", type=str, default="data/modelnet40_images_new_12x/*/test"
 )
+parser.add_argument(
+    "-num_workers", type=int, default=4
+)
+parser.add_argument(
+    "-num_epochs", type=int, default=1
+)
 parser.add_argument("-stage", type=int, default=1)
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-freeze", type=bool, default=True)
@@ -98,11 +104,16 @@ if __name__ == "__main__":
         log_dir = f"runs/{args.name}/stage_1"
         create_folder(log_dir)
         cnet = SVCNN(
-            args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name
+            args.name,
+            nclasses=40,
+            pretraining=pretraining,
+            cnn_name=args.cnn_name
         )
 
         optimizer = optim.Adam(
-            cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay
+            cnet.parameters(),
+            lr=args.lr,
+            weight_decay=args.weight_decay
         )
 
         train_dataset = SingleImgDataset(
@@ -113,14 +124,23 @@ if __name__ == "__main__":
             num_views=args.num_views,
         )
         train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batchSize, shuffle=True, num_workers=4
+            train_dataset,
+            batch_size=args.batchSize,
+            shuffle=True,
+            num_workers=args.num_workers
         )
 
         val_dataset = SingleImgDataset(
-            args.val_path, scale_aug=False, rot_aug=False, test_mode=True
+            args.val_path,
+            scale_aug=False,
+            rot_aug=False,
+            test_mode=True
         )
         val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4
+            val_dataset,
+            batch_size=args.batchSize,
+            shuffle=False,
+            num_workers=args.num_workers
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -134,8 +154,7 @@ if __name__ == "__main__":
             log_dir,
             num_views=1,
         )
-        # TODO trainer.train(30)
-        trainer.train(1)
+        trainer.train(args.num_epochs)
         wandb.finish()
 
     elif args.stage == 2:
@@ -144,10 +163,13 @@ if __name__ == "__main__":
             sys.exit()
 
         cnet = SVCNN(
-            args.svcnn_name, nclasses=40, pretraining=False, cnn_name=args.cnn_name
+            args.svcnn_name,
+            nclasses=40,
+            pretraining=False,
+            cnn_name=args.cnn_name
         )
 
-        cnet = cnet.load(f"runs/{args.svcnn_name}/stage_1")
+        cnet.load(f"runs/{args.svcnn_name}/stage_1")
 
         # STAGE 2
 
@@ -182,7 +204,7 @@ if __name__ == "__main__":
         # Freeze first part of net to improve training time / enable transfer learning
         if args.freeze:
             for param in cnet_2.net_1.parameters():
-                param.requires_grad(False)
+                param.requires_grad = False
 
         optimizer = optim.Adam(
             cnet_2.parameters(),
@@ -199,14 +221,23 @@ if __name__ == "__main__":
             num_views=args.num_views,
         )
         train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4
+            train_dataset,
+            batch_size=args.batchSize,
+            shuffle=False,
+            num_workers=args.num_workers
         )  # shuffle needs to be false! it's done within the trainer
 
         val_dataset = MultiviewImgDataset(
-            args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
+            args.val_path,
+            scale_aug=False,
+            rot_aug=False,
+            num_views=args.num_views
         )
         val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=4
+            val_dataset,
+            batch_size=args.batchSize,
+            shuffle=False,
+            num_workers=args.num_workers
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -220,6 +251,5 @@ if __name__ == "__main__":
             log_dir,
             num_views=args.num_views,
         )
-        # TODO trainer.train(30)
-        trainer.train(1)
+        trainer.train(args.num_epochs)
         wandb.finish()
