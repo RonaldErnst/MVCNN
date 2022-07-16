@@ -81,19 +81,21 @@ class ModelNetTrainer(object):
                 loss.backward()
                 self.optimizer.step()
 
-                log_str = "epoch %d, step %d: train_loss %.3f; train_acc %.3f" % (
+                log_str = ("epoch %d, step %d: train_loss %.3f; train_acc %.3f;"
+                           " %.1f%% done") % (
                     epoch + 1,
                     i + 1,
                     loss,
                     acc,
+                    i / len(self.train_loader)
                 )
                 wandb.log(
                     {
                         "train": {
                             "epoch": epoch + 1,
                             "step": i + 1,
-                            "train_loss": loss,
-                            "train_acc": acc,
+                            "loss": loss,
+                            "acc": acc,
                         }
                     }
                 )
@@ -110,14 +112,13 @@ class ModelNetTrainer(object):
                         val_mean_class_acc,
                     ) = self.update_validation_accuracy(epoch)
 
-                wandb.log(
+            wandb.log(
                     {
                         "val": {
                             "epoch": epoch + 1,
-                            "step": i + 1,
                             "loss": loss,
-                            "val_overall_acc": val_overall_acc,
-                            "val_mean_class_acc": val_mean_class_acc,
+                            "overall_acc": val_overall_acc,
+                            "mean_class_acc": val_mean_class_acc,
                         }
                     }
                 )
@@ -153,7 +154,7 @@ class ModelNetTrainer(object):
         # all_target = []
         # all_pred = []
 
-        for _, data in enumerate(self.val_loader, 0):
+        for index, data in enumerate(self.val_loader, 0):
 
             if self.model_name == "mvcnn":
                 N, V, C, H, W = data[1].size()
@@ -164,7 +165,8 @@ class ModelNetTrainer(object):
 
             out_data = self.model(in_data)
             pred = torch.max(out_data, 1)[1]
-            all_loss += self.loss_fn(out_data, target).cpu().data.numpy()
+            loss = self.loss_fn(out_data, target).cpu().data.numpy()
+            all_loss += loss
             results = pred == target
 
             for i in range(results.size()[0]):
@@ -173,8 +175,30 @@ class ModelNetTrainer(object):
                 samples_class[target.cpu().data.numpy().astype("int")[i]] += 1
             correct_points = torch.sum(results.long())
 
+            curr_acc = correct_points / results.size()[0]
             all_correct_points += correct_points
             all_points += results.size()[0]
+
+            log_str = "epoch %d, step %d: val_loss %.3f; val_acc %.3f; %.1f%% done;" % (
+                    epoch + 1,
+                    index + 1,
+                    loss,
+                    curr_acc,
+                    index / len(self.val_loader)
+                )
+
+            print(log_str)
+
+            wandb.log(
+                    {
+                        "val": {
+                            "epoch": epoch + 1,
+                            "step": index + 1,
+                            "loss": loss,
+                            "acc": curr_acc,
+                        }
+                    }
+                )
 
         print("Total # of test models: ", all_points)
         val_mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)
