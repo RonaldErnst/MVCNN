@@ -51,14 +51,22 @@ def create_folder(log_dir):
 
 
 if __name__ == "__main__":
-    num_epochs = 2
+    num_epochs = 30
     if num_epochs > 10:
-        project_name = "test-project"
+        project_name = "i-long"
     else:
         project_name = "i-quick"
     num_workers = 4
 
     args = parser.parse_args()
+
+    pretraining = not args.no_pretraining
+    log_dir = f"runs/{args.name}"
+    create_folder(log_dir)
+    config_f = open(os.path.join(log_dir, "config.json"), "w")
+    json.dump(vars(args), config_f)
+    config_f.close()
+
     wandb.init(
         project=project_name,
         entity="icheler-team",
@@ -74,13 +82,6 @@ if __name__ == "__main__":
             "num_views": args.num_views,
         },
     )
-
-    pretraining = not args.no_pretraining
-    log_dir = f"runs/{args.name}"
-    create_folder(log_dir)
-    config_f = open(os.path.join(log_dir, "config.json"), "w")
-    json.dump(vars(args), config_f)
-    config_f.close()
 
     # STAGE 1
     log_dir = f"runs/{args.name}/stage_1"
@@ -103,14 +104,22 @@ if __name__ == "__main__":
         num_views=args.num_views,
     )
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=32, shuffle=True, num_workers=num_workers
+        train_dataset,
+        batch_size=32,
+        shuffle=True,
+        num_workers=num_workers,
+        drop_last=True,
     )
 
     val_dataset = SingleImgDataset(
         args.val_path, scale_aug=False, rot_aug=False, test_mode=True
     )
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=32, shuffle=False, num_workers=num_workers
+        val_dataset,
+        batch_size=32,
+        shuffle=False,
+        num_workers=num_workers,
+        drop_last=True,
     )
     print("num_train_files: " + str(len(train_dataset.filepaths)))
     print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -128,6 +137,7 @@ if __name__ == "__main__":
     wandb.finish()
 
     # STAGE 2
+    torch.cuda.empty_cache()
 
     wandb.init(
         project=project_name,
@@ -166,14 +176,22 @@ if __name__ == "__main__":
         num_views=args.num_views,
     )
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batchSize, shuffle=False, num_workers=num_workers
+        train_dataset,
+        batch_size=args.batchSize,
+        shuffle=False,
+        num_workers=num_workers,
+        drop_last=True,
     )  # shuffle needs to be false! it's done within the trainer
 
     val_dataset = MultiviewImgDataset(
         args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
     )
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batchSize, shuffle=False, num_workers=num_workers
+        val_dataset,
+        batch_size=args.batchSize,
+        shuffle=False,
+        num_workers=num_workers,
+        drop_last=True,
     )
     print("num_train_files: " + str(len(train_dataset.filepaths)))
     print("num_val_files: " + str(len(val_dataset.filepaths)))

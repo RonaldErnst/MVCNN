@@ -101,7 +101,7 @@ class SVCNN(Model):
                     nn.BatchNorm1d(128),
                     nn.ReLU(),
                     nn.Dropout(),
-                    nn.Linear(128, 40)
+                    nn.Linear(128, 40),
                 )
             elif self.cnn_name == "resnet50-deep":
                 self.net = models.resnet50(pretrained=self.pretraining)
@@ -114,20 +114,29 @@ class SVCNN(Model):
                     nn.BatchNorm1d(4096),
                     nn.ReLU(),
                     nn.Dropout(),
-                    nn.Linear(4096, 40)
+                    nn.Linear(4096, 40),
                 )
         else:
             if self.cnn_name == "alexnet":
                 self.net_1 = models.alexnet(pretrained=self.pretraining).features
                 self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
+                self.net_2._modules["6"] = nn.Linear(4096, 40)
             elif self.cnn_name == "vgg11":
                 self.net_1 = models.vgg11(pretrained=self.pretraining).features
                 self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
+                self.net_2._modules["6"] = nn.Linear(4096, 40)
             elif self.cnn_name == "vgg16":
                 self.net_1 = models.vgg16(pretrained=self.pretraining).features
                 self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
-
-            self.net_2._modules["6"] = nn.Linear(4096, 40)
+                self.net_2._modules["6"] = nn.Linear(4096, 40)
+            elif self.cnn_name == "efficientnet":
+                self.net_1 = models.efficientnet_b3(
+                    pretrained=self.pretraining
+                ).features
+                self.net_2 = models.efficientnet_b3(
+                    pretrained=self.pretraining
+                ).classifier
+                self.net_2[1] = nn.Linear(75264, 40)
 
     def forward(self, x):
         if self.use_resnet:
