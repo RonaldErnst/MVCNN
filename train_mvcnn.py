@@ -28,7 +28,7 @@ parser.add_argument(
     "-num_models", type=int, help="number of models per class", default=1000
 )
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
-parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
+parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.01)
 parser.add_argument("-no_pretraining", dest="no_pretraining", action="store_true")
 parser.add_argument(
     "-cnn_name", "--cnn_name", type=str, help="cnn model name",
@@ -47,7 +47,7 @@ parser.add_argument(
 parser.add_argument(
     "-num_epochs", type=int, default=1
 )
-parser.add_argument("-stage", type=int, default=1)
+parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-freeze", type=bool, default=True)
 parser.add_argument("-continue_training", type=bool, default=False)
@@ -114,9 +114,6 @@ if __name__ == "__main__":
             cnn_name=args.cnn_name
         )
 
-        if args.continue_training:
-            cnet.load(log_dir)
-
         optimizer = optim.Adam(
             cnet.parameters(),
             lr=args.lr,
@@ -170,28 +167,6 @@ if __name__ == "__main__":
             print("SVCNN Model name required")
             sys.exit()
 
-        cnet = SVCNN(
-            args.svcnn_name,
-            nclasses=40,
-            pretraining=False,
-            cnn_name=args.cnn_name
-        )
-        cnet.load(f"runs/{args.svcnn_name}/stage_1")
-
-        cnet_2 = MVCNN(
-            args.name,
-            cnet,
-            nclasses=40,
-            cnn_name=args.cnn_name,
-            num_views=args.num_views
-        )
-        del cnet
-
-        log_dir = f"runs/{args.name}/stage_2"
-        create_folder(log_dir, args.continue_training)
-        if args.continue_training:
-            cnet_2.load(log_dir)
-
         wandb.init(
             project=project_name,
             entity="icheler-team",
@@ -210,10 +185,26 @@ if __name__ == "__main__":
             },
         )
 
-        # Freeze first part of net to improve training time / enable transfer learning
-        if args.freeze:
-            for param in cnet_2.net_1.parameters():
-                param.requires_grad = False
+        cnet = SVCNN(
+            args.svcnn_name,
+            nclasses=40,
+            pretraining=False,
+            cnn_name=args.cnn_name
+        )
+
+        cnet.load(f"runs/{args.svcnn_name}/stage_1")
+
+        cnet_2 = MVCNN(
+            args.name,
+            cnet,
+            nclasses=40,
+            cnn_name=args.cnn_name,
+            num_views=args.num_views
+        )
+        del cnet
+
+        log_dir = f"runs/{args.name}/stage_2"
+        create_folder(log_dir, args.continue_training)
 
         optimizer = optim.Adam(
             cnet_2.parameters(),

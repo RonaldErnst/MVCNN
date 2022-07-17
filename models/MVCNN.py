@@ -84,6 +84,13 @@ class SVCNN(Model):
             if self.cnn_name == "resnet18":
                 self.net = models.resnet18(pretrained=self.pretraining)
                 self.net.fc = nn.Linear(512, self.nclasses)
+            elif self.cnn_name == "resnet18_frozen":
+                self.net = models.resnet18(pretrained=self.pretraining)
+
+                for params in self.net.parameters():
+                    params.requires_grad = False
+
+                self.net.fc = nn.Linear(512, self.nclasses)
             elif self.cnn_name == "resnet34":
                 self.net = models.resnet34(pretrained=self.pretraining)
                 self.net.fc = nn.Linear(512, self.nclasses)
@@ -103,18 +110,15 @@ class SVCNN(Model):
             elif self.cnn_name == "convnext_tiny":
                 self.net = models.convnext_tiny(pretrained=self.pretraining)
                 self.net.classifier._modules["2"] = nn.Linear(768, self.nclasses)
-            elif self.cnn_name == "convnext_tiny_deep":
+            elif self.cnn_name == "convnext_tiny_frozen":
                 self.net = models.convnext_tiny(pretrained=self.pretraining)
-                self.net.fc = nn.Sequential(
-                    nn.Dropout(),
-                    nn.Linear(768, 768),
-                    nn.ReLU(inplace=True),
-                    nn.Dropout(),
-                    nn.Linear(768, 768),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(768, self.nclasses),
-                )
-                self.net.classifier._modules["2"] = self.net.fc
+
+                # Freeze  first half of Feature extractor
+                for feat in self.net.features[:-3]:
+                    for params in feat.parameters():
+                        params.requires_grad = False
+
+                self.net.classifier._modules["2"] = nn.Linear(768, self.nclasses)
 
     def forward(self, x):
         return self.net(x)
@@ -187,9 +191,14 @@ class MVCNN(Model):
                     or self.cnn_name == "vgg16":
                 self.net_1 = model.net_1
                 self.net_2 = model.net_2
-            elif self.cnn_name == "convnext_tiny":
+            elif self.cnn_name == "convnext_tiny" or \
+                    self.cnn_name == "convnext_tiny_frozen":
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.net_2 = model.net.classifier._modules["2"]
+
+        # Freeze first part of net to improve training time
+        for param in self.net_1.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         y = self.net_1(x)
