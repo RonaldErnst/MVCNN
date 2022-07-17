@@ -38,14 +38,14 @@ class ModelNetTrainer(object):
         self.model.train()
         epoch = 0
 
-        model_path = os.path.join(self.log_dir, self.model.name)
-        if not os.path.exists(model_path):
-            os.makedirs(model_path)
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
 
-        complete_path = os.path.join(model_path, "checkpoint.tar")
+        complete_path = os.path.join(self.log_dir, "checkpoint.pth")
+        complete_path = complete_path.replace(os.sep, '/')
 
         if wandb.run.resumed:
-            checkpoint = torch.load(wandb.restore(complete_path))
+            checkpoint = torch.load(complete_path)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             epoch = checkpoint['epoch'] + 1
@@ -139,21 +139,22 @@ class ModelNetTrainer(object):
             # save best model
             if val_overall_acc > best_acc:
                 best_acc = val_overall_acc
+                self.model.save(self.log_dir, epoch)
 
-                torch.save({
-                    "epoch": epoch,
-                    "model_state_dict": self.model.state_dict(),
-                    "optimizer_state_dict": self.optimizer.state_dict(),
-                    "loss": loss
-                }, complete_path)
-                wandb.save(complete_path)  # saves checkpoint to wandb
+            torch.save({
+                "epoch": epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "loss": loss
+            }, complete_path)
+            wandb.save(complete_path)  # saves checkpoint to wandb
 
             epoch += 1
 
             # adjust learning rate manually
-            # if epoch > 0 and (epoch + 1) % 10 == 0:
-            #     for param_group in self.optimizer.param_groups:
-            #         param_group["lr"] = param_group["lr"] * 0.5
+            if epoch > 0 and (epoch + 1) % 10 == 0:
+                for param_group in self.optimizer.param_groups:
+                    param_group["lr"] = param_group["lr"] * 0.5
 
     def update_validation_accuracy(self, epoch):
         all_correct_points = 0
