@@ -16,6 +16,10 @@ from tools.img_dataset import MultiviewImgDataset, SingleImgDataset
 from tools.trainer import ModelNetTrainer
 from models.MVCNN import MVCNN, SVCNN
 
+#############################################
+# I MADE CHANGES: PLEASE LOOK AT THE README #
+#############################################
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-name", "--name", type=str, help="Name of the experiment",
@@ -49,7 +53,6 @@ parser.add_argument(
 )
 parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
 parser.add_argument("-svcnn_name", type=str, default="")
-parser.add_argument("-freeze", type=bool, default=True)
 parser.add_argument("-resume_id", type=str, default="")
 parser.set_defaults(train=False)
 
