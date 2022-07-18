@@ -133,10 +133,17 @@ class SVCNN(Model):
                 self.net_1 = models.efficientnet_b3(
                     pretrained=self.pretraining
                 ).features
-                self.net_2 = models.efficientnet_b3(
-                    pretrained=self.pretraining
-                ).classifier
-                self.net_2[1] = nn.Linear(75264, 40)
+                self.net_2 = nn.Sequential(
+                    nn.Linear(75264, 40),
+                    nn.BatchNorm1d(40),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(40, 4096),
+                    nn.BatchNorm1d(4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 40),
+                )
 
     def forward(self, x):
         if self.use_resnet:
