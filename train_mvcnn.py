@@ -50,15 +50,15 @@ parser.add_argument(
 parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-freeze", type=bool, default=True)
-parser.add_argument("-continue_training", type=bool, default=False)
+parser.add_argument("-resume_id", type=str, default="")
 parser.set_defaults(train=False)
 
 
-def create_folder(log_dir, continue_training=False):
+def create_folder(log_dir, throw_err=True):
     # make summary folder
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
-    elif not continue_training:  # Dont throw error when continue training
+    elif throw_err:  # Dont throw error when continue training
         raise ValueError(
             "ERROR: Please change the name of the run model to avoid duplication"
         )
@@ -78,11 +78,19 @@ if __name__ == "__main__":
         print("Not using cuda... exiting")
         sys.exit()
 
+    pretraining = not args.no_pretraining
+    log_dir = f"runs/{args.name}"
+    create_folder(log_dir, False)
+    config_f = open(os.path.join(log_dir, "config.json"), "w")
+    json.dump(vars(args), config_f)
+    config_f.close()
+
     if args.stage == 1:
         wandb.init(
+            id=args.resume_id,
             project=project_name,
             entity="icheler-team",
-            resume=args.continue_training,
+            resume=args.resume_id != "",
             name=f"{args.name}_stage_1",
             tags=["stage1"],
             config={
@@ -97,16 +105,9 @@ if __name__ == "__main__":
             }
         )
 
-        pretraining = not args.no_pretraining
-        log_dir = f"runs/{args.name}"
-        create_folder(log_dir, args.continue_training)
-        config_f = open(os.path.join(log_dir, "config.json"), "w")
-        json.dump(vars(args), config_f)
-        config_f.close()
-
         # STAGE 1
         log_dir = f"runs/{args.name}/stage_1"
-        create_folder(log_dir, args.continue_training)
+        create_folder(log_dir, args.resume_id == "")
         cnet = SVCNN(
             args.name,
             nclasses=40,
@@ -168,9 +169,10 @@ if __name__ == "__main__":
             sys.exit()
 
         wandb.init(
+            id=args.resume_id,
             project=project_name,
             entity="icheler-team",
-            resume=args.continue_training,
+            resume=args.resume_id != "",
             name=f"{args.name}_stage_2",
             tags=["stage2"],
             config={
@@ -204,7 +206,7 @@ if __name__ == "__main__":
         del cnet
 
         log_dir = f"runs/{args.name}/stage_2"
-        create_folder(log_dir, args.continue_training)
+        create_folder(log_dir, args.resume_id == "")
 
         optimizer = optim.Adam(
             cnet_2.parameters(),
