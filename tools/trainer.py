@@ -45,11 +45,12 @@ class ModelNetTrainer(object):
         complete_path = complete_path.replace(os.sep, '/')
 
         if wandb.run.resumed:
+            self.model.load(self.log_dir)
             checkpoint = torch.load(complete_path)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            epoch = checkpoint['epoch'] + 1
+            epoch = checkpoint['epoch'] + 1  # Last finished epoch
             loss = checkpoint['loss']
+            n_epochs += epoch
 
         while epoch < n_epochs:
             # permute data for mvcnn
