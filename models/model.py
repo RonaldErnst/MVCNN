@@ -31,4 +31,6 @@ class Model(nn.Module):
         else:
             mf = os.path.join(path, modelfile)
 
+        print("loading model...", mf)
+
         self.load_state_dict(torch.load(mf))
