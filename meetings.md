@@ -13,3 +13,17 @@ TO-DO List:
 - R:
   - Try ConvNext
   - Branch merging
+
+# Meeting 3
+Ingo: mostly training:
+- resnet18 deep
+- efficientnet deep
+- convnext deep for feature extraction
+Ronald:
+- get our architecture to work with 'original' datasets
+- test on shapenet55 with lower epochs
+- test different architectures outside of extraction
+Askar:
+- combine dataset
+- get generation script working
+- pitch new architectures outside of extraction

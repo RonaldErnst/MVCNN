@@ -1,5 +1,5 @@
 import glob
-
+import os
 import numpy as np
 import torch
 import torch.utils.data
@@ -90,7 +90,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
             for i in range(len(rand_idx)):
                 filepaths_new.extend(
                     self.filepaths[
-                        rand_idx[i] * num_views : (rand_idx[i] + 1) * num_views
+                        rand_idx[i] * num_views: (rand_idx[i] + 1) * num_views
                     ]
                 )
             self.filepaths = filepaths_new
@@ -120,6 +120,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         path = self.filepaths[idx * self.num_views]
+        path = path.replace(os.sep, '/')
         class_name = path.split("/")[-3]
         class_id = self.classnames.index(class_name)
         # Use PIL instead
@@ -133,7 +134,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         return (
             class_id,
             torch.stack(imgs),
-            self.filepaths[idx * self.num_views : (idx + 1) * self.num_views],
+            self.filepaths[idx * self.num_views: (idx + 1) * self.num_views],
         )
 
 
@@ -224,6 +225,7 @@ class SingleImgDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         path = self.filepaths[idx]
+        path = path.replace(os.sep, '/')
         class_name = path.split("/")[-3]
         class_id = self.classnames.index(class_name)
 

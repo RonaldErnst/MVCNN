@@ -61,3 +61,5 @@ data/shapenet55v1
 wandb/
 runs/*
 !runs/.gitkeep
+
+env/
