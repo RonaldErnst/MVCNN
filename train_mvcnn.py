@@ -123,23 +123,27 @@ if __name__ == "__main__":
             train_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=True,
+                num_models=n_models_train,
                 num_views=1,
                 shuffle=True,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=False,
+                num_models=n_models_train,
                 num_views=1,
                 shuffle=False,
             )
         else:
             train_dataset = ShapeNet55Dataset(
                 train=True,
+                num_models=n_models_train,
                 num_views=1,
                 shuffle=True,
             )
             val_dataset = ShapeNet55Dataset(
                 train=False,
+                num_models=n_models_train,
                 num_views=1,
                 shuffle=False,
             )
@@ -228,23 +232,27 @@ if __name__ == "__main__":
             train_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=True,
+                num_models=n_models_train,
                 num_views=args.num_views,
                 shuffle=True,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=False,
+                num_models=n_models_train,
                 num_views=args.num_views,
                 shuffle=False,
             )
         else:
             train_dataset = ShapeNet55Dataset(
                 train=True,
+                num_models=n_models_train,
                 num_views=args.num_views,
                 shuffle=True,
             )
             val_dataset = ShapeNet55Dataset(
                 train=False,
+                num_models=n_models_train,
                 num_views=args.num_views,
                 shuffle=False,
             )
