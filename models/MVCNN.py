@@ -99,14 +99,11 @@ class SVCNN(Model):
                 self.net.fc = nn.Linear(2048, self.nclasses)
         else:
             if self.cnn_name == "alexnet":
-                self.net_1 = models.alexnet(pretrained=self.pretraining).features
-                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
+                self.net = models.alexnet(pretrained=self.pretraining)
             elif self.cnn_name == "vgg11":
-                self.net_1 = models.vgg11(pretrained=self.pretraining).features
-                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
+                self.net = models.vgg11(pretrained=self.pretraining)
             elif self.cnn_name == "vgg16":
-                self.net_1 = models.vgg16(pretrained=self.pretraining).features
-                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
+                self.net = models.vgg16(pretrained=self.pretraining)
             elif self.cnn_name == "convnext_tiny":
                 self.net = models.convnext_tiny(pretrained=self.pretraining)
                 in_features = self.net.classifier._modules["2"].in_features
@@ -222,8 +219,8 @@ class MVCNN(Model):
                 self.net_2 = list(model.net.classifier.children())[-1]
 
         # Freeze first part of net to improve training time
-        # for param in self.net_1.parameters():
-        #     param.requires_grad = False
+        for param in self.net_1.parameters():
+            param.requires_grad = False
 
         for param in self.parameters():
             print(param.requires_grad)
