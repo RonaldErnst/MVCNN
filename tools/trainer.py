@@ -28,6 +28,7 @@ class ModelNetTrainer(object):
         self.model_name = model_name
         self.log_dir = log_dir
         self.num_views = num_views
+        self.num_classes = train_loader.num_classes
 
         self.model.cuda()
 
@@ -166,8 +167,8 @@ class ModelNetTrainer(object):
         # out_data = None
         # target = None
 
-        wrong_class = np.zeros(40)
-        samples_class = np.zeros(40)
+        wrong_class = np.zeros(self.num_classes)
+        samples_class = np.zeros(self.num_classes)
         all_loss = 0
 
         self.model.eval()
