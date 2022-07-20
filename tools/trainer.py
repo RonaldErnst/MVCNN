@@ -53,20 +53,20 @@ class ModelNetTrainer(object):
             n_epochs += epoch
 
         while epoch < n_epochs:
-            # permute data for mvcnn
-            rand_idx = np.random.permutation(
-                int(len(self.train_loader.dataset.filepaths) / self.num_views)
-            )
-            filepaths_new = []
-            for i in range(len(rand_idx)):
-                filepaths_new.extend(
-                    self.train_loader.dataset.filepaths[
-                        rand_idx[i]
-                        * self.num_views: (rand_idx[i] + 1)
-                        * self.num_views
-                    ]
-                )
-            self.train_loader.dataset.filepaths = filepaths_new
+            # permute data for mvcnn TODO necessary? just do it in Dataset?
+            # rand_idx = np.random.permutation(
+            #     int(len(self.train_loader.dataset.filepaths) / self.num_views)
+            # )
+            # filepaths_new = []
+            # for i in range(len(rand_idx)):
+            #     filepaths_new.extend(
+            #         self.train_loader.dataset.filepaths[
+            #             rand_idx[i]
+            #             * self.num_views: (rand_idx[i] + 1)
+            #             * self.num_views
+            #         ]
+            #     )
+            # self.train_loader.dataset.filepaths = filepaths_new
 
             # train one epoch
             out_data = None
@@ -78,6 +78,7 @@ class ModelNetTrainer(object):
                     in_data = Variable(data[1]).view(-1, C, H, W).cuda()
                 else:
                     in_data = Variable(data[1].cuda())
+
                 target = Variable(data[0]).cuda().long()
 
                 self.optimizer.zero_grad()
