@@ -71,9 +71,13 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'r-convnext-modelnet'
 
     args = parser.parse_args()
+
+    if args.num_epochs > 10:
+        project_name = 'i-long'
+    else:
+        project_name = 'i-quick'
 
     n_models_train = args.num_models * args.num_views
 

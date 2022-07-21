@@ -42,14 +42,14 @@ class ModelNetTrainer(object):
             os.makedirs(self.log_dir)
 
         complete_path = os.path.join(self.log_dir, "checkpoint.pth")
-        complete_path = complete_path.replace(os.sep, '/')
+        complete_path = complete_path.replace(os.sep, "/")
 
         if wandb.run.resumed:
             self.model.load(self.log_dir)
             checkpoint = torch.load(complete_path)
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            epoch = checkpoint['epoch'] + 1  # Last finished epoch
-            loss = checkpoint['loss']
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            epoch = checkpoint["epoch"] + 1  # Last finished epoch
+            loss = checkpoint["loss"]
             n_epochs += epoch
 
         while epoch < n_epochs:
@@ -62,7 +62,7 @@ class ModelNetTrainer(object):
                 filepaths_new.extend(
                     self.train_loader.dataset.filepaths[
                         rand_idx[i]
-                        * self.num_views: (rand_idx[i] + 1)
+                        * self.num_views : (rand_idx[i] + 1)
                         * self.num_views
                     ]
                 )
@@ -95,21 +95,16 @@ class ModelNetTrainer(object):
                 loss.backward()
                 self.optimizer.step()
 
-                log_str = ("epoch %d, step %d: train_loss %.3f; train_acc %.3f;"
-                           " %.1f%% done") % (
-                    epoch + 1,
-                    i + 1,
-                    loss,
-                    acc,
-                    i * 100 / len(self.train_loader)
-                )
+                log_str = (
+                    "epoch %d, step %d: train_loss %.3f; train_acc %.3f;" " %.1f%% done"
+                ) % (epoch + 1, i + 1, loss, acc, i * 100 / len(self.train_loader))
                 wandb.log(
                     {
                         "train": {
                             "epoch": epoch + 1,
                             "step": i + 1,
-                            "loss": loss,
-                            "acc": acc,
+                            "train_loss": loss,
+                            "train_acc": acc,
                         }
                     }
                 )
@@ -127,27 +122,30 @@ class ModelNetTrainer(object):
                     ) = self.update_validation_accuracy(epoch)
 
             wandb.log(
-                    {
-                        "val": {
-                            "epoch": epoch + 1,
-                            "loss": loss,
-                            "overall_acc": val_overall_acc,
-                            "mean_class_acc": val_mean_class_acc,
-                        }
+                {
+                    "val": {
+                        "epoch": epoch + 1,
+                        "loss": loss,
+                        "val_overall_acc": val_overall_acc,
+                        "val_mean_class_acc": val_mean_class_acc,
                     }
-                )
+                }
+            )
 
             # save best model
             if val_overall_acc > best_acc:
                 best_acc = val_overall_acc
                 self.model.save(self.log_dir, epoch)
 
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "loss": loss
-            }, complete_path)
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_state_dict": self.model.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "loss": loss,
+                },
+                complete_path,
+            )
             wandb.save(complete_path)  # saves checkpoint to wandb
 
             epoch += 1
@@ -204,25 +202,25 @@ class ModelNetTrainer(object):
             all_points += results.size()[0]
 
             log_str = "epoch %d, step %d: val_loss %.3f; val_acc %.3f; %.1f%% done;" % (
-                    epoch + 1,
-                    index + 1,
-                    loss,
-                    curr_acc,
-                    index * 100 / len(self.val_loader)
-                )
+                epoch + 1,
+                index + 1,
+                loss,
+                curr_acc,
+                index * 100 / len(self.val_loader),
+            )
 
             print(log_str)
 
             wandb.log(
-                    {
-                        "val": {
-                            "epoch": epoch + 1,
-                            "step": index + 1,
-                            "loss": loss,
-                            "acc": curr_acc,
-                        }
+                {
+                    "val": {
+                        "epoch": epoch + 1,
+                        "step": index + 1,
+                        "loss": loss,
+                        "acc": curr_acc,
                     }
-                )
+                }
+            )
 
         print("Total # of test models: ", all_points)
         val_mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)
