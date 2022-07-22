@@ -144,13 +144,13 @@ class ModelNetTrainer(object):
                 best_acc = val_overall_acc
                 self.model.save(self.log_dir, epoch)
 
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "loss": loss
-            }, complete_path)
-            wandb.save(complete_path)  # saves checkpoint to wandb
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": self.model.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "loss": loss
+                }, complete_path)
+                # wandb.save(complete_path)  # saves checkpoint to wandb
 
             epoch += 1
 
