@@ -84,6 +84,15 @@ class SVCNN(Model):
             if self.cnn_name == "resnet18":
                 self.net = models.resnet18(pretrained=self.pretraining)
                 self.net.fc = nn.Linear(512, self.nclasses)
+            elif self.cnn_name == "resnet18_deep":
+                self.net = models.resnet18(pretrained=self.pretraining)
+                self.net.fc = nn.Sequential(
+                    nn.Linear(512, 4096),
+                    nn.ReLU(),
+                    nn.Linear(4096, 4096),
+                    nn.ReLU(),
+                    nn.Linear(4096, self.nclasses)
+                )
             elif self.cnn_name == "resnet18_frozen":
                 self.net = models.resnet18(pretrained=self.pretraining)
 
@@ -126,8 +135,10 @@ class SVCNN(Model):
                 self.net.classifier._modules["2"] = nn.Sequential(
                     nn.Linear(in_features, 4096),
                     nn.ReLU(),
+                    nn.Dropout(),
                     nn.Linear(4096, 4096),
                     nn.ReLU(),
+                    nn.Dropout(),
                     nn.Linear(4096, in_features),
                     nn.ReLU(),
                     last_layer
@@ -201,8 +212,51 @@ class MVCNN(Model):
         self.use_resnet = cnn_name.startswith("resnet")
 
         if self.use_resnet:
-            self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
-            self.net_2 = model.net.fc
+            if self.cnn_name == "resnet18_prepool":
+                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
+                self.prepool = nn.Sequential(
+                        nn.Conv2d(512, 256, 1),
+                        nn.ReLU(),
+                        nn.Conv2d(256, 128, 1),
+                        nn.ReLU(),
+                        nn.Conv2d(128, 64, 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(64, 128, 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(128, 256, 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(256, 512, 1),
+                        nn.ReLU(),
+                    )
+                self.net_2 = model.net.fc
+            elif self.cnn_name == "resnet18_postpool":
+                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
+                self.net_2 = nn.Sequential(
+                            nn.Linear(512, 4096),
+                            nn.ReLU(),
+                            nn.Dropout(),
+                            nn.Linear(4096, 4096),
+                            nn.ReLU(),
+                            nn.Dropout(),
+                            nn.Linear(4096, 512),
+                            nn.ReLU(),
+                            model.net.fc
+                        )
+            else:
+                self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
+                self.net_2 = model.net.fc
+
+            if self.cnn_name == "resnet18_nopool":
+                self.pooling = nn.Sequential(
+                    nn.Linear(12 * 512, 4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 512),
+                    nn.ReLU(),
+                )
         else:
             if self.cnn_name == "alexnet" or self.cnn_name == "vgg11" \
                     or self.cnn_name == "vgg16":
@@ -219,14 +273,15 @@ class MVCNN(Model):
                 self.net_2 = list(model.net.classifier.children())[-1]
 
         # Freeze first part of net to improve training time
-        for param in self.net_1.parameters():
-            param.requires_grad = False
-
-        for param in self.parameters():
-            print(param.requires_grad)
+        # for param in self.net_1.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x):
         y = self.net_1(x)
+
+        if hasattr(self, "prepool"):
+            y = self.prepool(y)
+
         y = y.view(
             (
                 int(x.shape[0] / self.num_views),
@@ -235,5 +290,13 @@ class MVCNN(Model):
                 y.shape[-2],
                 y.shape[-1],
             )
-        )  # (8,12,512,7,7)
-        return self.net_2(torch.max(y, 1)[0].view(y.shape[0], -1))
+        )  # (8,12,512,x,x)
+
+        if hasattr(self, "pooling"):  # Replace pooling with CNN?
+            y = self.pooling(y.view(y.shape[0], -1))
+        else:
+            # y = torch.max(y, 1)[0].view(y.shape[0], -1)
+            y = torch.mean(y, 1).view(y.shape[0], -1)
+            # Ideas: Use mean and max only for values higher than std?
+
+        return self.net_2(y)
