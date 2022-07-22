@@ -8,11 +8,10 @@ from json import loads
 
 class SNMVDataset(Dataset):
     def __init__(self, dir_path, dataset):
-        assert dataset in ('train', 'val')
+        assert dataset in ('train', 'val', 'test')
 
         with open(path.join(dir_path, dataset + '.csv')) as csv:
             self.csv = pd.read_csv(csv)
-            self.csv = self.csv[self.csv['id'] != 4004].reset_index(drop=True)
             self.csv['id'] = self.csv['id'].astype('int')
         self.dir_path = path.join(dir_path, dataset)
     
@@ -117,16 +116,3 @@ class SNMVClassDataset(SNMVDataset):
 
     def _get_label(self, synsetId, _):
         return self.label_dict[synsetId]
-
-
-def iterate_jpg(dataset):
-    for i in range(len(dataset)):
-        dataset[i]
-
-def iterate_dataset(dataset):
-    iterate_jpg(SNMVDataset('ShapeNet/shapenet55v1', dataset))
-    iterate_jpg(SNMVNameDataset('ShapeNet/shapenet55v1', 'ShapeNet/taxonomy.json', dataset))
-    iterate_jpg(SNMVClassDataset('ShapeNet/shapenet55v1', dataset))
-
-iterate_dataset('val')
-iterate_dataset('train')
