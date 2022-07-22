@@ -137,16 +137,16 @@ class ModelNetTrainer(object):
                 best_acc = val_overall_acc
                 self.model.save(self.log_dir, epoch)
 
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "model_state_dict": self.model.state_dict(),
-                    "optimizer_state_dict": self.optimizer.state_dict(),
-                    "loss": loss,
-                },
-                complete_path,
-            )
-            wandb.save(complete_path)  # saves checkpoint to wandb
+                torch.save(
+                    {
+                        "epoch": epoch,
+                        "model_state_dict": self.model.state_dict(),
+                        "optimizer_state_dict": self.optimizer.state_dict(),
+                        "loss": loss,
+                    },
+                    complete_path,
+                )
+                wandb.save(complete_path)  # saves checkpoint to wandb
 
             epoch += 1
 
@@ -210,17 +210,6 @@ class ModelNetTrainer(object):
             )
 
             print(log_str)
-
-            wandb.log(
-                {
-                    "val": {
-                        "epoch": epoch + 1,
-                        "step": index + 1,
-                        "loss": loss,
-                        "acc": curr_acc,
-                    }
-                }
-            )
 
         print("Total # of test models: ", all_points)
         val_mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)

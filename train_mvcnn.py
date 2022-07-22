@@ -6,7 +6,7 @@ import sys
 
 # Only for windows
 # Set Max Split size because it keeps crashing
-if os.name == 'nt':
+if os.name == "nt":
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:21"
 
 import torch
@@ -22,8 +22,7 @@ from models.MVCNN import MVCNN, SVCNN
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-name", "--name", type=str, help="Name of the experiment",
-    required=True
+    "-name", "--name", type=str, help="Name of the experiment", required=True
 )
 parser.add_argument(
     "-bs", "--batchSize", type=int, help="Batch size for the second stage", default=4
@@ -35,8 +34,7 @@ parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
 parser.add_argument("-no_pretraining", dest="no_pretraining", action="store_true")
 parser.add_argument(
-    "-cnn_name", "--cnn_name", type=str, help="cnn model name",
-    required=True
+    "-cnn_name", "--cnn_name", type=str, help="cnn model name", required=True
 )
 parser.add_argument("-num_views", type=int, help="number of views", default=12)
 parser.add_argument(
@@ -45,12 +43,8 @@ parser.add_argument(
 parser.add_argument(
     "-val_path", type=str, default="data/modelnet40_images_new_12x/*/test"
 )
-parser.add_argument(
-    "-num_workers", type=int, default=4
-)
-parser.add_argument(
-    "-num_epochs", type=int, default=1
-)
+parser.add_argument("-num_workers", type=int, default=4)
+parser.add_argument("-num_epochs", type=int, default=1)
 parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
@@ -75,9 +69,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.num_epochs > 10:
-        project_name = 'i-long'
+        project_name = "i-long"
     else:
-        project_name = 'i-quick'
+        project_name = "i-quick"
 
     n_models_train = args.num_models * args.num_views
 
@@ -93,6 +87,54 @@ if __name__ == "__main__":
     config_f.close()
 
     if args.stage == 1:
+
+        # STAGE 1
+        log_dir = f"runs/{args.name}/stage_1"
+        create_folder(log_dir, args.resume_id == "")
+        cnet = SVCNN(
+            args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name
+        )
+
+        optimizer = optim.Adam(
+            cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
+
+        train_dataset = SingleImgDataset(
+            args.train_path,
+            scale_aug=False,
+            rot_aug=False,
+            num_models=n_models_train,
+            num_views=args.num_views,
+        )
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=args.batchSize,
+            shuffle=True,
+            num_workers=args.num_workers,
+        )
+
+        val_dataset = SingleImgDataset(
+            args.val_path, scale_aug=False, rot_aug=False, test_mode=True
+        )
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset,
+            batch_size=args.batchSize,
+            shuffle=False,
+            num_workers=args.num_workers,
+        )
+        print("num_train_files: " + str(len(train_dataset.filepaths)))
+        print("num_val_files: " + str(len(val_dataset.filepaths)))
+        trainer = ModelNetTrainer(
+            cnet,
+            train_loader,
+            val_loader,
+            optimizer,
+            nn.CrossEntropyLoss(),
+            "svcnn",
+            log_dir,
+            num_views=1,
+        )
+
         wandb.init(
             id=args.resume_id,
             project=project_name,
@@ -109,63 +151,9 @@ if __name__ == "__main__":
                 "no_pretraining": args.no_pretraining,
                 "cnn_name": args.cnn_name,
                 "num_views": args.num_views,
-            }
+            },
         )
 
-        # STAGE 1
-        log_dir = f"runs/{args.name}/stage_1"
-        create_folder(log_dir, args.resume_id == "")
-        cnet = SVCNN(
-            args.name,
-            nclasses=40,
-            pretraining=pretraining,
-            cnn_name=args.cnn_name
-        )
-
-        optimizer = optim.Adam(
-            cnet.parameters(),
-            lr=args.lr,
-            weight_decay=args.weight_decay
-        )
-
-        train_dataset = SingleImgDataset(
-            args.train_path,
-            scale_aug=False,
-            rot_aug=False,
-            num_models=n_models_train,
-            num_views=args.num_views,
-        )
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset,
-            batch_size=args.batchSize,
-            shuffle=True,
-            num_workers=args.num_workers
-        )
-
-        val_dataset = SingleImgDataset(
-            args.val_path,
-            scale_aug=False,
-            rot_aug=False,
-            test_mode=True
-        )
-        val_loader = torch.utils.data.DataLoader(
-            val_dataset,
-            batch_size=args.batchSize,
-            shuffle=False,
-            num_workers=args.num_workers
-        )
-        print("num_train_files: " + str(len(train_dataset.filepaths)))
-        print("num_val_files: " + str(len(val_dataset.filepaths)))
-        trainer = ModelNetTrainer(
-            cnet,
-            train_loader,
-            val_loader,
-            optimizer,
-            nn.CrossEntropyLoss(),
-            "svcnn",
-            log_dir,
-            num_views=1,
-        )
         trainer.train(args.num_epochs)
         wandb.finish()
 
@@ -175,30 +163,8 @@ if __name__ == "__main__":
             print("SVCNN Model name required")
             sys.exit()
 
-        wandb.init(
-            id=args.resume_id,
-            project=project_name,
-            entity="icheler-team",
-            resume=args.resume_id != "",
-            name=f"{args.name}_stage_2",
-            tags=["stage2"],
-            config={
-                "name": args.name,
-                "num_models": args.num_models,
-                "lr": args.lr,
-                "batch_size": args.batchSize,
-                "weight_decay": args.weight_decay,
-                "no_pretraining": args.no_pretraining,
-                "cnn_name": args.cnn_name,
-                "num_views": args.num_views,
-            },
-        )
-
         cnet = SVCNN(
-            args.svcnn_name,
-            nclasses=40,
-            pretraining=False,
-            cnn_name=args.cnn_name
+            args.svcnn_name, nclasses=40, pretraining=False, cnn_name=args.cnn_name
         )
 
         cnet.load(f"runs/{args.svcnn_name}/stage_1")
@@ -208,7 +174,7 @@ if __name__ == "__main__":
             cnet,
             nclasses=40,
             cnn_name=args.cnn_name,
-            num_views=args.num_views
+            num_views=args.num_views,
         )
         del cnet
 
@@ -233,20 +199,17 @@ if __name__ == "__main__":
             train_dataset,
             batch_size=args.batchSize,
             shuffle=False,
-            num_workers=args.num_workers
+            num_workers=args.num_workers,
         )  # shuffle needs to be false! it's done within the trainer
 
         val_dataset = MultiviewImgDataset(
-            args.val_path,
-            scale_aug=False,
-            rot_aug=False,
-            num_views=args.num_views
+            args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
         )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
             shuffle=False,
-            num_workers=args.num_workers
+            num_workers=args.num_workers,
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -260,5 +223,25 @@ if __name__ == "__main__":
             log_dir,
             num_views=args.num_views,
         )
+
+        wandb.init(
+            id=args.resume_id,
+            project=project_name,
+            entity="icheler-team",
+            resume=args.resume_id != "",
+            name=f"{args.name}_stage_2",
+            tags=["stage2"],
+            config={
+                "name": args.name,
+                "num_models": args.num_models,
+                "lr": args.lr,
+                "batch_size": args.batchSize,
+                "weight_decay": args.weight_decay,
+                "no_pretraining": args.no_pretraining,
+                "cnn_name": args.cnn_name,
+                "num_views": args.num_views,
+            },
+        )
+
         trainer.train(args.num_epochs)
         wandb.finish()

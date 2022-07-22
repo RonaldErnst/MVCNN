@@ -170,16 +170,16 @@ class SVCNN(Model):
                 self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
                 self.net_2._modules["6"] = nn.Linear(4096, 40)
             elif self.cnn_name == "efficientnet":
-                self.net_1 = models.efficientnet_b3(
-                    pretrained=self.pretraining
-                ).features
+                self.net_1 = nn.Sequential(
+                    models.efficientnet_b3(pretrained=True).features,
+                    nn.Conv2d(1536, 1000, 7),
+                    nn.SiLU(True),
+                )
                 self.net_2 = nn.Sequential(
-                    nn.Linear(75264, 40),
-                    nn.BatchNorm1d(40),
+                    nn.Linear(1000, 4096),
                     nn.ReLU(),
                     nn.Dropout(),
-                    nn.Linear(40, 4096),
-                    nn.BatchNorm1d(4096),
+                    nn.Linear(4096, 4096),
                     nn.ReLU(),
                     nn.Dropout(),
                     nn.Linear(4096, 40),
@@ -264,7 +264,7 @@ class MVCNN(Model):
                 self.net_1 = nn.Sequential(
                     *list(model.net.children())[:-1],
                     # Skip Flatten & last linear layer in classifier
-                    *list(model.net.classifier.children())[:-2]
+                    *list(model.net.classifier.children())[:-2],
                 )
                 self.net_2 = list(model.net.classifier.children())[-1]
             else:
