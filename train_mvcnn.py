@@ -26,7 +26,7 @@ parser.add_argument(
     "-num_models", type=int, help="number of models per class", default=10000
 )
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
-parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
+parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.001)
 parser.add_argument("-no_pretraining", dest="no_pretraining", action="store_true")
 parser.add_argument(
     "-cnn_name", "--cnn_name", type=str, help="cnn model name",
@@ -47,6 +47,7 @@ parser.add_argument(
 )
 parser.add_argument("-stage", type=int, required=True, choices=[1, 2])
 parser.add_argument("-svcnn_name", type=str, default="")
+parser.add_argument("-svcnn_arc", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
 parser.set_defaults(train=False)
 
@@ -65,7 +66,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'r-dataset-tests'
+    project_name = 'r-architecture-tests'
 
     args = parser.parse_args()
 
@@ -177,8 +178,8 @@ if __name__ == "__main__":
 
     elif args.stage == 2:
         # STAGE 2
-        if args.svcnn_name == "":
-            print("SVCNN Model name required")
+        if args.svcnn_name == "" or args.svcnn_arc == "":
+            print("SVCNN Model name and architecture required")
             sys.exit()
 
         wandb.init(
@@ -204,7 +205,7 @@ if __name__ == "__main__":
             args.svcnn_name,
             nclasses=n_classes,
             pretraining=False,
-            cnn_name=args.cnn_name
+            cnn_name=args.svcnn_arc
         )
 
         cnet.load(f"runs/{args.svcnn_name}/stage_1")
