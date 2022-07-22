@@ -27,3 +27,17 @@ Askar:
 - combine dataset
 - get generation script working
 - pitch new architectures outside of extraction
+
+# Meeting 4
+Ingo:
+- Training Convnext and so on
+- start latex
+Ronald:
+- Merge branches
+- test anything else (remove batchnorms)
+- Get data from wandb
+Askar:
+- train on selfmade ShapeNet
+    - use merge-r-i-1
+- Merge datasets: enough time, feasible?
+- Train,Val,Test splits for ModelNet&ShapeNet
