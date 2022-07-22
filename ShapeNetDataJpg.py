@@ -1,61 +1,55 @@
-import os
-from torch.utils.data import Dataset
-from zipfile import ZipFile
-from pathlib import Path
-from json import loads
-from os.path import join
+import numpy as np
+import pandas as pd
 
-from render import ObjMultiViewRenderer
+from os import path
+from PIL import Image
+from torch.utils.data import Dataset
+from json import loads
 
 class SNMVDataset(Dataset):
-    def __init__(self, archive_path, device, image_size=256):
-        self.archive = ZipFile(archive_path, 'r')
-        self.renderer = ObjMultiViewRenderer(self.archive, device, image_size)
+    def __init__(self, dir_path, dataset):
+        assert dataset in ('train', 'val')
 
-        self.model_paths = [fn for fn in self.archive.namelist() if fn.endswith('obj')]
+        with open(path.join(dir_path, dataset + '.csv')) as csv:
+            self.csv = pd.read_csv(csv)
+            self.csv = self.csv[self.csv['id'] != 4004].reset_index(drop=True)
+            self.csv['id'] = self.csv['id'].astype('int')
+        self.dir_path = path.join(dir_path, dataset)
     
-    def save_img(self, idx, dirname):
-        model_path = self.model_paths[idx]
-        imgname = model_path.split('/')[2]
-        self.renderer.saveimg(model_path, imgname, dirname)
-    
-    def _load_taxonomy(self):
-        taxonomy = self.archive.read(join('ShapeNetCore.v2', 'taxonomy.json'))
-        return loads(taxonomy)
-
     def __len__(self):
-        return len(self.model_paths)
+        return len(self.csv)
     
     def __getitem__(self, idx):
-        model_path = self.model_paths[idx]
-        dirname = os.path.dirname(model_path)
-        images = self.renderer.render(model_path, dirname)
-        label = self._get_label(model_path)
-        return images, label
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.archive.close()
+        item = self.csv[self.csv.index == idx]
+        model_path_base = f'model_{int(item["id"].item()):06d}_'
+        model_path_base = path.join(self.dir_path, model_path_base)
+        img_array = np.zeros((12, 224, 224, 3))
+        for i in range(12):
+            model_path = model_path_base + f'{i + 1:03d}.jpg'
+            with open(model_path, 'rb') as jpg:
+                jpg = Image.open(jpg)
+                img_array[i] = np.asarray(jpg)
+        return img_array, self._get_label(item['synsetId'].item(),
+                                          item['subSynsetId'].item())
     
-    def _get_label(self, model_path):
-        return model_path.split('/')[1]
+    def _get_label(self, synsetId, _):
+        return synsetId
 
 
 class SNMVNameDataset(SNMVDataset):
-    def __init__(self, archive_path, device, image_size=256):
-        super().__init__(archive_path, device, image_size)
-        self.label_dict = {cls['synsetId']: cls['name'] for cls in self._load_taxonomy()}
-
-    def _get_label(self, model_path):
-        synsetId = super()._get_label(model_path)
-        return self.label_dict[synsetId]
-
+    def __init__(self, dir_path, taxonomy_path, dataset):
+        super().__init__(dir_path, dataset)
+        with open(path.join(taxonomy_path)) as taxonomy:
+            taxonomy = taxonomy.read()
+        taxonomy = loads(taxonomy)
+        self.taxonomy = { int(i['synsetId']): i['name'] for i in taxonomy }
+    
+    def _get_label(self, synsetId, subSynsetId):
+        return (self.taxonomy[synsetId], self.taxonomy[subSynsetId])
 
 class SNMVClassDataset(SNMVDataset):
-    def __init__(self, archive_path, device, image_size=256):
-        super().__init__(archive_path, device, image_size)
+    def __init__(self, dir_path, dataset):
+        super().__init__(dir_path, dataset)
         self.label_dict = {
             '02691156': 'airplane', #'airplane,aeroplane,plane',
             # '02747177': 'ashcan,trash can,garbage can,wastebin,ash '
@@ -116,9 +110,23 @@ class SNMVClassDataset(SNMVDataset):
             # '04530566': 'vessel,watercraft',
             # '04554684': 'washer,automatic washer,washing machine'
         }
-        self.model_paths = [path for path in self.model_paths \
-            if super(SNMVClassDataset, self)._get_label(path) in self.label_dict]
+        self.label_dict = { int(id): name 
+            for id, name in self.label_dict.items() }
+        self.csv = self.csv[
+            self.csv['synsetId'].isin(pd.Series(self.label_dict.keys()))].reset_index(drop=True)
 
-    def _get_label(self, model_path):
-        synsetId = super()._get_label(model_path)
+    def _get_label(self, synsetId, _):
         return self.label_dict[synsetId]
+
+
+def iterate_jpg(dataset):
+    for i in range(len(dataset)):
+        dataset[i]
+
+def iterate_dataset(dataset):
+    iterate_jpg(SNMVDataset('ShapeNet/shapenet55v1', dataset))
+    iterate_jpg(SNMVNameDataset('ShapeNet/shapenet55v1', 'ShapeNet/taxonomy.json', dataset))
+    iterate_jpg(SNMVClassDataset('ShapeNet/shapenet55v1', dataset))
+
+iterate_dataset('val')
+iterate_dataset('train')

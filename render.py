@@ -3,7 +3,7 @@ import torch
 
 import matplotlib.pyplot as plt
 
-from os import getcwd
+from os import getcwd, path
 
 from pytorch3d.structures import Meshes
 from pytorch3d.renderer import (
@@ -31,7 +31,7 @@ class ObjMultiViewRenderer:
         azimuth = torch.linspace(0, 360 // self.batch_size *
             (self.batch_size - 1), self.batch_size)
         
-        R, T = look_at_view_transform(dist=1.5, elev=elevation, azim=azimuth)
+        R, T = look_at_view_transform(dist=1.0, elev=elevation, azim=azimuth)
         cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
         raster_settings = RasterizationSettings(
             image_size=image_size
@@ -76,13 +76,14 @@ class ObjMultiViewRenderer:
         mesh = ObjMultiViewRenderer._create_centered_mesh(verts, faces, texture_atlas)
         
         return self.renderer(mesh.extend(self.batch_size))
-    
-    def saveimg(self, objname):
-        with open(objname + '.obj') as file:
-            images = self.render(file)
+     
+    def saveimg(self, objname, imgname, dirname):
+        data_dir = path.dirname(objname)
+        images = self.render(objname, data_dir)
         plt.figure(figsize=(10, 10))
         for i in range(len(images)):
-            plt.imsave(objname + f'_{i}.png', images[i, ..., :3].cpu().numpy())
+            plt.imsave(path.join(dirname, imgname + f'_{i}.png'), images[i, ..., :3].cpu().numpy())
+        plt.close()
 
 
 if __name__ == '__main__':
