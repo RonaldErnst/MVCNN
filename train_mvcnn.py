@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tools.img_dataset import MultiviewImgDataset, SingleImgDataset
+from tools.ShapeNetDataJpg import SNMVDataset
 from tools.trainer import ModelNetTrainer
 from models.MVCNN import MVCNN, SVCNN
 
@@ -48,6 +49,7 @@ parser.add_argument("-num_epochs", type=int, default=1)
 parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
+parser.add_argument("-dataset", type=str, default="modelnet")
 parser.set_defaults(train=False)
 
 
@@ -69,9 +71,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.num_epochs > 10:
-        project_name = "i-long"
+        project_name = "a-long"
     else:
-        project_name = "i-quick"
+        project_name = "a-quick"
 
     n_models_train = args.num_models * args.num_views
 
@@ -99,13 +101,29 @@ if __name__ == "__main__":
             cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay
         )
 
-        train_dataset = SingleImgDataset(
-            args.train_path,
-            scale_aug=False,
-            rot_aug=False,
-            num_models=n_models_train,
-            num_views=args.num_views,
-        )
+        if args.dataset == 'modelnet':
+            train_dataset = SingleImgDataset(
+                args.train_path,
+                scale_aug=False,
+                rot_aug=False,
+                num_models=n_models_train,
+                num_views=args.num_views,
+            )
+            val_dataset = SingleImgDataset(
+                args.val_path, scale_aug=False, rot_aug=False, test_mode=True
+            )
+        elif args.dataset == 'shapenet':
+            train_dataset = SNMVDataset(
+                args.train_path,
+                'train',
+                1
+            )
+            val_dataset = SNMVDataset(
+                args.train_path,
+                'val',
+                1
+            )
+
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchSize,
@@ -113,9 +131,6 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
         )
 
-        val_dataset = SingleImgDataset(
-            args.val_path, scale_aug=False, rot_aug=False, test_mode=True
-        )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
@@ -188,13 +203,29 @@ if __name__ == "__main__":
             betas=(0.9, 0.999),
         )
 
-        train_dataset = MultiviewImgDataset(
-            args.train_path,
-            scale_aug=False,
-            rot_aug=False,
-            num_models=n_models_train,
-            num_views=args.num_views,
-        )
+        if args.dataset == 'modelnet':
+            train_dataset = MultiviewImgDataset(
+                args.train_path,
+                scale_aug=False,
+                rot_aug=False,
+                num_models=n_models_train,
+                num_views=args.num_views,
+            )
+            val_dataset = MultiviewImgDataset(
+                args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
+            )
+        elif args.dataset == 'shapenet':
+            train_datset = SNMVDataset(
+                args.train_path,
+                'train',
+                12
+            )
+            val_dataset = SNMVDataset(
+                args.train_path,
+                'val',
+                12
+            )
+
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchSize,
@@ -202,9 +233,6 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
         )  # shuffle needs to be false! it's done within the trainer
 
-        val_dataset = MultiviewImgDataset(
-            args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
-        )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,

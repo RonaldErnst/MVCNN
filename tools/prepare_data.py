@@ -7,8 +7,9 @@ import sys
 from tarfile import open
 
 
-shapenet_tar = 'shapenet55v1.tar'
-shapenet_dir = 'shapenet55v1'
+root_dir = '../data'
+shapenet_tar = os.path.join(root_dir, 'shapenet55v1.tar')
+shapenet_dir = os.path.join(root_dir, 'shapenet55v1')
 
 def start(msg):
     sys.stdout.write(msg)
@@ -21,7 +22,7 @@ assert not os.path.exists(shapenet_dir)
 
 start('Extracting from ' + shapenet_tar + '...')
 with open(shapenet_tar) as tar:
-    tar.extractall()
+    tar.extractall(root_dir)
 done()
 
 start('Reading and splitting csv...')
