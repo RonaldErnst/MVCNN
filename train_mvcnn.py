@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from tools.img_dataset import ModelNet40Dataset, ShapeNet55Dataset
 from tools.trainer import ModelNetTrainer
+from tools.ShapeNetDataJpg import SNMVDataset
 from models.MVCNN import MVCNN, SVCNN
 
 #############################################
@@ -134,15 +135,15 @@ if __name__ == "__main__":
                 num_views=1,
             )
         else:
-            train_dataset = ShapeNet55Dataset(
-                train=True,
-                num_models=n_models_train,
-                num_views=1,
+            train_dataset = SNMVDataset(
+                'data/shapenet55v1',
+                'train',
+                1
             )
-            val_dataset = ShapeNet55Dataset(
-                train=False,
-                num_models=n_models_train,
-                num_views=1,
+            val_dataset = SNMVDataset(
+                'data/shapenet55v1',
+                'val',
+                1
             )
 
         train_loader = torch.utils.data.DataLoader(
@@ -239,15 +240,15 @@ if __name__ == "__main__":
                 num_views=args.num_views,
             )
         else:
-            train_dataset = ShapeNet55Dataset(
-                train=True,
-                num_models=n_models_train,
-                num_views=args.num_views,
+            train_dataset = SNMVDataset(
+                'data/shapenet55v1',
+                'train',
+                args.num_views
             )
-            val_dataset = ShapeNet55Dataset(
-                train=False,
-                num_models=n_models_train,
-                num_views=args.num_views,
+            val_dataset = SNMVDataset(
+                'data/shapenet55v1',
+                'val',
+                args.num_views
             )
 
         train_loader = torch.utils.data.DataLoader(
