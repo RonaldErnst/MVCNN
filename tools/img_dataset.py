@@ -450,16 +450,16 @@ class ShapeNet55Dataset(torch.utils.data.Dataset):
         self.num_classes = len(self.classnames)
 
         if train:
-            self.root_dir = "data/shapenet55v1/*/train"
+            self.root_dir = "data/shapenet55v1/train"
             self.classmap_dir = "data/shapenet55v1/train.csv"
         else:
-            self.root_dir = "data/shapenet55v1/*/val"
+            self.root_dir = "data/shapenet55v1/val"
             self.classmap_dir = "data/shapenet55v1/val.csv"
 
         self.classmap = self.__load_csv__(self.classmap_dir)
 
         set_ = self.root_dir.split("/")[-1]
-        parent_dir = self.root_dir.rsplit("/", 2)[0]
+        parent_dir = self.root_dir.rsplit("/", 1)[0]
         self.filepaths = []
 
         all_files = sorted(
