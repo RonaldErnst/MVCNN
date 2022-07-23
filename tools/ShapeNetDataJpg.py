@@ -1,35 +1,51 @@
+from re import sub
 import numpy as np
 import pandas as pd
 
 from os import path
 from PIL import Image
 from torch.utils.data import Dataset
+from torchvision import transforms
 from json import loads
 
 class SNMVDataset(Dataset):
-    def __init__(self, dir_path, dataset):
+    def __init__(self, dir_path, dataset, num_views):
         assert dataset in ('train', 'val', 'test')
 
         with open(path.join(dir_path, dataset + '.csv')) as csv:
-            self.csv = pd.read_csv(csv)
-            self.csv['id'] = self.csv['id'].astype('int')
+            csv = pd.read_csv(csv)
+        self.filepaths = []
+        for item in csv.itertuples(index=False):
+            _, id, synsetId, subSynsetId = item
+            jpg_path_base = path.join(dir_path, dataset, f'model_{id:06d}_')
+            jpg_paths = []
+            for i in range(1, 13, int(12 / num_views)):
+                jpg_paths.append(jpg_path_base + f'{i:03}.jpg')
+            self.filepaths.append((jpg_paths, synsetId, subSynsetId))
         self.dir_path = path.join(dir_path, dataset)
+        self.num_views = num_views
+
+        self.transform = transforms.Compose(
+            [
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
     
     def __len__(self):
-        return len(self.csv)
+        return int(len(self.filepaths) / self.num_views)
     
     def __getitem__(self, idx):
-        item = self.csv[self.csv.index == idx]
-        model_path_base = f'model_{int(item["id"].item()):06d}_'
-        model_path_base = path.join(self.dir_path, model_path_base)
-        img_array = np.zeros((12, 224, 224, 3))
-        for i in range(12):
-            model_path = model_path_base + f'{i + 1:03d}.jpg'
-            with open(model_path, 'rb') as jpg:
-                jpg = Image.open(jpg)
-                img_array[i] = np.asarray(jpg)
-        return img_array, self._get_label(item['synsetId'].item(),
-                                          item['subSynsetId'].item())
+        jpg_paths, synsetId, subSynsetId = self.filepaths[int(idx * self.num_views)]
+        img_array = np.zeros((self.num_views, 3, 224, 224), dtype=np.float32)
+        for i, path in enumerate(jpg_paths):
+            jpg = Image.open(path)
+            jpg = self.transform(jpg)
+            img_array[i] = np.asarray(jpg)
+        return self._get_label(synsetId, subSynsetId), img_array.squeeze(), jpg_paths
     
     def _get_label(self, synsetId, _):
         return synsetId
