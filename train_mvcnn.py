@@ -48,7 +48,6 @@ parser.add_argument("-stage", type=int, required=True, choices=[1, 2])
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-svcnn_arc", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
-parser.add_argument("-dataset", type=str, default="modelnet")
 parser.set_defaults(train=False)
 
 
@@ -120,12 +119,12 @@ if __name__ == "__main__":
             )
         else:
             train_dataset = SNMVDataset(
-                args.train_path,
+                'data/shapenet55v1',
                 'train',
                 1
             )
             val_dataset = SNMVDataset(
-                args.train_path,
+                'data/shapenet55v1',
                 'val',
                 1
             )
@@ -154,8 +153,6 @@ if __name__ == "__main__":
             log_dir,
             num_views=1,
         )
-        trainer.train(args.num_epochs)
-        wandb.finish()
         wandb.init(
             id=args.resume_id,
             project=project_name,
@@ -227,12 +224,12 @@ if __name__ == "__main__":
             )
         else:
             train_datset = SNMVDataset(
-                args.train_path,
+                'data/shapenet55v1',
                 'train',
                 12
             )
             val_dataset = SNMVDataset(
-                args.train_path,
+                'data/shapenet55v1',
                 'val',
                 12
             )
