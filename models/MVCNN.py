@@ -73,6 +73,7 @@ class SVCNN(Model):
         self.pretraining = pretraining
         self.cnn_name = cnn_name
         self.use_resnet = cnn_name.startswith("resnet")
+
         self.mean = Variable(
             torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False
         ).cuda()
@@ -106,50 +107,95 @@ class SVCNN(Model):
             elif self.cnn_name == "resnet50":
                 self.net = models.resnet50(pretrained=self.pretraining)
                 self.net.fc = nn.Linear(2048, self.nclasses)
+            elif self.cnn_name == "resnet18-deep":
+                self.net = models.resnet18(pretrained=self.pretraining)
+                self.net.fc = nn.Sequential(
+                    nn.Linear(512, 256),
+                    nn.BatchNorm1d(256),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(256, 128),
+                    nn.BatchNorm1d(128),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(128, self.nclasses),
+                )
+            elif self.cnn_name == "resnet50-deep":
+                self.net = models.resnet50(pretrained=self.pretraining)
+                self.net.fc = nn.Sequential(
+                    nn.Linear(2048, 4096),
+                    nn.BatchNorm1d(4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 4096),
+                    nn.BatchNorm1d(4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, self.nclasses),
+                )
+                self.net.fc = nn.Linear(2048, self.nclasses)
         else:
             if self.cnn_name == "alexnet":
-                self.net = models.alexnet(pretrained=self.pretraining)
+                self.net_1 = models.alexnet(pretrained=self.pretraining).features
+                self.net_2 = models.alexnet(pretrained=self.pretraining).classifier
+                self.net_2._modules["6"] = nn.Linear(4096, self.nclasses)
             elif self.cnn_name == "vgg11":
-                self.net = models.vgg11(pretrained=self.pretraining)
+                self.net_1 = models.vgg11(pretrained=self.pretraining).features
+                self.net_2 = models.vgg11(pretrained=self.pretraining).classifier
+                self.net_2._modules["6"] = nn.Linear(4096, self.nclasses)
             elif self.cnn_name == "vgg16":
-                self.net = models.vgg16(pretrained=self.pretraining)
+                self.net_1 = models.vgg16(pretrained=self.pretraining).features
+                self.net_2 = models.vgg16(pretrained=self.pretraining).classifier
+                self.net_2._modules["6"] = nn.Linear(4096, self.nclasses)
             elif self.cnn_name == "convnext_tiny":
-                self.net = models.convnext_tiny(pretrained=self.pretraining)
-                in_features = self.net.classifier._modules["2"].in_features
-                self.net.classifier._modules["2"] = nn.Linear(in_features,
-                                                              self.nclasses)
-            elif self.cnn_name == "convnext_tiny_frozen":
-                self.net = models.convnext_tiny(pretrained=self.pretraining)
-                in_features = self.net.classifier._modules["2"].in_features
-                self.net.classifier._modules["2"] = nn.Linear(in_features,
-                                                              self.nclasses)
-
-                # Freeze first half of Feature extractor
-                for feat in self.net.features[:-3]:
-                    for params in feat.parameters():
-                        params.requires_grad = False
+                net = models.convnext_tiny(pretrained=self.pretraining)
+                self.net_1 = nn.Sequential(
+                    *list(net.children())[:-1],
+                    # Skip Flatten & last linear layer in classifier
+                    *list(net.classifier.children())[:-2]
+                    )
+                in_features = list(net.classifier.children())[-1].in_features
+                self.net_2 = nn.Linear(in_features, self.nclasses)
             elif self.cnn_name == "convnext_tiny_deep":
-                self.net = models.convnext_tiny(pretrained=self.pretraining)
-                last_layer = self.net.classifier._modules["2"]
-                in_features = self.net.classifier._modules["2"].in_features
-                self.net.classifier._modules["2"] = nn.Sequential(
+                net = models.convnext_tiny(pretrained=self.pretraining)
+                self.net_1 = nn.Sequential(
+                    *list(net.children())[:-1],
+                    # Skip Flatten & last linear layer in classifier
+                    *list(net.classifier.children())[:-2]
+                    )
+                last_layer = list(net.classifier.children())[-1]
+                in_features = last_layer.in_features
+                self.net_2 = nn.Sequential(
                     nn.Linear(in_features, 4096),
+                    nn.ReLU(),
+                    nn.Linear(4096, 4096),
+                    nn.ReLU(),
+                    nn.Linear(4096, in_features),
+                    nn.ReLU(),
+                    nn.Linear(in_features, self.nclasses),
+                )
+            elif self.cnn_name == "efficientnet":
+                self.net_1 = nn.Sequential(
+                    models.efficientnet_b3(pretrained=True).features,
+                    nn.Conv2d(1536, 1000, 7),
+                    nn.SiLU(True),
+                )
+                self.net_2 = nn.Sequential(
+                    nn.Linear(1000, 4096),
                     nn.ReLU(),
                     nn.Dropout(),
                     nn.Linear(4096, 4096),
                     nn.ReLU(),
                     nn.Dropout(),
-                    nn.Linear(4096, in_features),
-                    nn.ReLU(),
-                    last_layer
+                    nn.Linear(4096, self.nclasses),
                 )
 
-            if self.cnn_name == "alexnet" or self.cnn_name == "vgg11" or\
-                    self.cnn_name == "vgg16":
-                self.net_2._modules['6'] = nn.Linear(4096, self.nclasses)
-
     def forward(self, x):
-        return self.net(x)
+        if self.use_resnet:
+            return self.net(x)
+        else:
+            y = self.net_1(x)
+            return self.net_2(y.view(y.shape[0], -1))
 
 
 class MVCNN(Model):
@@ -258,19 +304,8 @@ class MVCNN(Model):
                     nn.ReLU(),
                 )
         else:
-            if self.cnn_name == "alexnet" or self.cnn_name == "vgg11" \
-                    or self.cnn_name == "vgg16":
-                self.net_1 = model.net_1
-                self.net_2 = model.net_2
-            elif self.cnn_name == "convnext_tiny" or \
-                    self.cnn_name == "convnext_tiny_frozen" or \
-                    self.cnn_name == "convnext_tiny_deep":
-                self.net_1 = nn.Sequential(
-                    *list(model.net.children())[:-1],
-                    # Skip Flatten & last linear layer in classifier
-                    *list(model.net.classifier.children())[:-2]
-                    )
-                self.net_2 = list(model.net.classifier.children())[-1]
+            self.net_1 = model.net_1
+            self.net_2 = model.net_2
 
         # Freeze first part of net to improve training time
         # for param in self.net_1.parameters():
@@ -296,7 +331,7 @@ class MVCNN(Model):
             y = self.pooling(y.view(y.shape[0], -1))
         else:
             # y = torch.max(y, 1)[0].view(y.shape[0], -1)
-            y = torch.mean(y, 1).view(y.shape[0], -1)
+            y = torch.max(y, 1).view(y.shape[0], -1)
             # Ideas: Use mean and max only for values higher than std?
 
         return self.net_2(y)

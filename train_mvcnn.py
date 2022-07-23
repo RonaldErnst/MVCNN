@@ -26,7 +26,7 @@ parser.add_argument(
     "-num_models", type=int, help="number of models per class", default=10000
 )
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
-parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.001)
+parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
 parser.add_argument("-no_pretraining", dest="no_pretraining", action="store_true")
 parser.add_argument(
     "-cnn_name", "--cnn_name", type=str, help="cnn model name",
@@ -66,7 +66,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'r-architecture-tests'
+    project_name = 'PROJECT NAME HERE'
 
     args = parser.parse_args()
 
@@ -126,40 +126,36 @@ if __name__ == "__main__":
                 train=True,
                 num_models=n_models_train,
                 num_views=1,
-                shuffle=True,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=False,
                 num_models=n_models_train,
                 num_views=1,
-                shuffle=False,
             )
         else:
             train_dataset = ShapeNet55Dataset(
                 train=True,
                 num_models=n_models_train,
                 num_views=1,
-                shuffle=True,
             )
             val_dataset = ShapeNet55Dataset(
                 train=False,
                 num_models=n_models_train,
                 num_views=1,
-                shuffle=False,
             )
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchSize,
-            shuffle=False,
-            num_workers=args.num_workers
+            shuffle=True,
+            num_workers=args.num_workers,
         )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
             shuffle=False,
-            num_workers=args.num_workers
+            num_workers=args.num_workers,
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
@@ -235,40 +231,36 @@ if __name__ == "__main__":
                 train=True,
                 num_models=n_models_train,
                 num_views=args.num_views,
-                shuffle=True,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
                 train=False,
                 num_models=n_models_train,
                 num_views=args.num_views,
-                shuffle=False,
             )
         else:
             train_dataset = ShapeNet55Dataset(
                 train=True,
                 num_models=n_models_train,
                 num_views=args.num_views,
-                shuffle=True,
             )
             val_dataset = ShapeNet55Dataset(
                 train=False,
                 num_models=n_models_train,
                 num_views=args.num_views,
-                shuffle=False,
             )
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchSize,
-            shuffle=False,
-            num_workers=args.num_workers
+            shuffle=True,
+            num_workers=args.num_workers,
         )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
             shuffle=False,
-            num_workers=args.num_workers
+            num_workers=args.num_workers,
         )
         print("num_train_files: " + str(len(train_dataset.filepaths)))
         print("num_val_files: " + str(len(val_dataset.filepaths)))
