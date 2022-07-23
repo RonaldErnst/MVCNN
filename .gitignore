@@ -54,9 +54,14 @@ coverage.xml
 docs/_build/
 
 data/modelnet40_images_new_12x
+<<<<<<< HEAD
 data/ModelNet40
 data/modelnet40v1
 data/shapenet55v1*
+=======
+data/modelnet40_original_12x
+data/shapenet55v1
+>>>>>>> main
 
 wandb/
 runs/*

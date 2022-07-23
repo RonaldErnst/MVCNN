@@ -24,7 +24,11 @@ model_conv.classifier._modules["2"] = nn.Linear(num_ftrs, num_classes)
 - Batch Size and number of epochs has to be set explicitly via arguments.<br>
     Otherwise they will default to 4 and 1 respectively (-bs & -num_epochs)
 - DataLoader workers can be set too. Default: 4 (-num_workers)
+- Dataset can be specified now too. Default: "model_shaded" (-dataset) <br>
+    ("... -dataset model_original/model_shaded/shapenet")
 - Stage for training has to be specified (-stage)
 - Specify which model (run folder) should be used for stage 2 <br>
     ("... -svcnn_name convnext_tiny_2" to use stage 1 of /runs/convnext_tiny_2/stage_1)
+- This also requires the model architecture to properly create the SVCNN<br>
+    ("... -svcnn_name convnext_tiny_2 -svcnn_arc convnext_tiny")
 - When continuing, specify wandb ID (e.g. "... -resume_id vyrf9ok7")

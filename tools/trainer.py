@@ -28,6 +28,7 @@ class ModelNetTrainer(object):
         self.model_name = model_name
         self.log_dir = log_dir
         self.num_views = num_views
+        self.num_classes = self.model.nclasses
 
         self.model.cuda()
 
@@ -53,20 +54,6 @@ class ModelNetTrainer(object):
             n_epochs += epoch
 
         while epoch < n_epochs:
-            # permute data for mvcnn
-            rand_idx = np.random.permutation(
-                int(len(self.train_loader.dataset.filepaths) / self.num_views)
-            )
-            filepaths_new = []
-            for i in range(len(rand_idx)):
-                filepaths_new.extend(
-                    self.train_loader.dataset.filepaths[
-                        rand_idx[i]
-                        * self.num_views : (rand_idx[i] + 1)
-                        * self.num_views
-                    ]
-                )
-            self.train_loader.dataset.filepaths = filepaths_new
 
             # train one epoch
             out_data = None
@@ -78,6 +65,7 @@ class ModelNetTrainer(object):
                     in_data = Variable(data[1]).view(-1, C, H, W).cuda()
                 else:
                     in_data = Variable(data[1].cuda())
+
                 target = Variable(data[0]).cuda().long()
 
                 self.optimizer.zero_grad()
@@ -137,16 +125,13 @@ class ModelNetTrainer(object):
                 best_acc = val_overall_acc
                 self.model.save(self.log_dir, epoch)
 
-                torch.save(
-                    {
-                        "epoch": epoch,
-                        "model_state_dict": self.model.state_dict(),
-                        "optimizer_state_dict": self.optimizer.state_dict(),
-                        "loss": loss,
-                    },
-                    complete_path,
-                )
-                wandb.save(complete_path)  # saves checkpoint to wandb
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": self.model.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "loss": loss
+                }, complete_path)
+                # wandb.save(complete_path)  # saves checkpoint to wandb
 
             epoch += 1
 
@@ -163,8 +148,8 @@ class ModelNetTrainer(object):
         # out_data = None
         # target = None
 
-        wrong_class = np.zeros(40)
-        samples_class = np.zeros(40)
+        wrong_class = np.ones(self.num_classes)  # Ones to avoid dividing by 0
+        samples_class = np.ones(self.num_classes)  # Ones to avoid dividing by 0
         all_loss = 0
 
         self.model.eval()
@@ -181,7 +166,7 @@ class ModelNetTrainer(object):
             if self.model_name == "mvcnn":
                 N, V, C, H, W = data[1].size()
                 in_data = Variable(data[1]).view(-1, C, H, W).cuda()
-            else:  # 'svcnn'
+            else:  # "svcnn"
                 in_data = Variable(data[1]).cuda()
             target = Variable(data[0]).cuda()
 
@@ -210,6 +195,17 @@ class ModelNetTrainer(object):
             )
 
             print(log_str)
+
+            # wandb.log(
+            #         {
+            #             "val": {
+            #                 "epoch": epoch + 1,
+            #                 "step": index + 1,
+            #                 "loss": loss,
+            #                 "acc": curr_acc,
+            #             }
+            #         }
+            #     )
 
         print("Total # of test models: ", all_points)
         val_mean_class_acc = np.mean((samples_class - wrong_class) / samples_class)

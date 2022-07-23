@@ -3,16 +3,10 @@ import json
 import os
 import wandb
 import sys
-
-# Only for windows
-# Set Max Split size because it keeps crashing
-if os.name == "nt":
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:21"
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tools.img_dataset import MultiviewImgDataset, SingleImgDataset
+from tools.img_dataset import ModelNet40Dataset, ShapeNet55Dataset
 from tools.ShapeNetDataJpg import SNMVDataset
 from tools.trainer import ModelNetTrainer
 from models.MVCNN import MVCNN, SVCNN
@@ -29,7 +23,7 @@ parser.add_argument(
     "-bs", "--batchSize", type=int, help="Batch size for the second stage", default=4
 )  # it will be *12 images in each batch for mvcnn
 parser.add_argument(
-    "-num_models", type=int, help="number of models per class", default=1000
+    "-num_models", type=int, help="number of models per class", default=10000
 )
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
@@ -39,15 +33,20 @@ parser.add_argument(
 )
 parser.add_argument("-num_views", type=int, help="number of views", default=12)
 parser.add_argument(
-    "-train_path", type=str, default="data/modelnet40_images_new_12x/*/train"
+    "-dataset",
+    type=str,
+    default="model_shaded",
+    choices=["model_shaded", "model_original", "shapenet"]
 )
 parser.add_argument(
-    "-val_path", type=str, default="data/modelnet40_images_new_12x/*/test"
+    "-num_workers", type=int, default=4
 )
-parser.add_argument("-num_workers", type=int, default=4)
-parser.add_argument("-num_epochs", type=int, default=1)
-parser.add_argument("-stage", type=int, required=True, help="Stage 1 or Stage 2")
+parser.add_argument(
+    "-num_epochs", type=int, default=1
+)
+parser.add_argument("-stage", type=int, required=True, choices=[1, 2])
 parser.add_argument("-svcnn_name", type=str, default="")
+parser.add_argument("-svcnn_arc", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
 parser.add_argument("-dataset", type=str, default="modelnet")
 parser.set_defaults(train=False)
@@ -67,6 +66,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
+    project_name = 'PROJECT NAME HERE'
 
     args = parser.parse_args()
 
@@ -76,6 +76,7 @@ if __name__ == "__main__":
         project_name = "a-quick"
 
     n_models_train = args.num_models * args.num_views
+    n_classes = 40 if args.dataset.startswith("model") else 55
 
     if not torch.cuda.is_available():
         print("Not using cuda... exiting")
@@ -94,25 +95,30 @@ if __name__ == "__main__":
         log_dir = f"runs/{args.name}/stage_1"
         create_folder(log_dir, args.resume_id == "")
         cnet = SVCNN(
-            args.name, nclasses=40, pretraining=pretraining, cnn_name=args.cnn_name
+            args.name,
+            nclasses=n_classes,
+            pretraining=pretraining,
+            cnn_name=args.cnn_name
         )
 
         optimizer = optim.Adam(
             cnet.parameters(), lr=args.lr, weight_decay=args.weight_decay
         )
 
-        if args.dataset == 'modelnet':
-            train_dataset = SingleImgDataset(
-                args.train_path,
-                scale_aug=False,
-                rot_aug=False,
+        if args.dataset.startswith("model"):
+            train_dataset = ModelNet40Dataset(
+                args.dataset,
+                train=True,
                 num_models=n_models_train,
-                num_views=args.num_views,
+                num_views=1,
             )
-            val_dataset = SingleImgDataset(
-                args.val_path, scale_aug=False, rot_aug=False, test_mode=True
+            val_dataset = ModelNet40Dataset(
+                args.dataset,
+                train=False,
+                num_models=n_models_train,
+                num_views=1,
             )
-        elif args.dataset == 'shapenet':
+        else:
             train_dataset = SNMVDataset(
                 args.train_path,
                 'train',
@@ -130,7 +136,6 @@ if __name__ == "__main__":
             shuffle=True,
             num_workers=args.num_workers,
         )
-
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
@@ -149,7 +154,8 @@ if __name__ == "__main__":
             log_dir,
             num_views=1,
         )
-
+        trainer.train(args.num_epochs)
+        wandb.finish()
         wandb.init(
             id=args.resume_id,
             project=project_name,
@@ -174,12 +180,15 @@ if __name__ == "__main__":
 
     elif args.stage == 2:
         # STAGE 2
-        if args.svcnn_name == "":
-            print("SVCNN Model name required")
+        if args.svcnn_name == "" or args.svcnn_arc == "":
+            print("SVCNN Model name and architecture required")
             sys.exit()
 
         cnet = SVCNN(
-            args.svcnn_name, nclasses=40, pretraining=False, cnn_name=args.cnn_name
+            args.svcnn_name,
+            nclasses=n_classes,
+            pretraining=False,
+            cnn_name=args.svcnn_arc
         )
 
         cnet.load(f"runs/{args.svcnn_name}/stage_1")
@@ -187,7 +196,7 @@ if __name__ == "__main__":
         cnet_2 = MVCNN(
             args.name,
             cnet,
-            nclasses=40,
+            nclasses=n_classes,
             cnn_name=args.cnn_name,
             num_views=args.num_views,
         )
@@ -203,18 +212,20 @@ if __name__ == "__main__":
             betas=(0.9, 0.999),
         )
 
-        if args.dataset == 'modelnet':
-            train_dataset = MultiviewImgDataset(
-                args.train_path,
-                scale_aug=False,
-                rot_aug=False,
+        if args.dataset.startswith("model"):
+            train_dataset = ModelNet40Dataset(
+                args.dataset,
+                train=True,
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
-            val_dataset = MultiviewImgDataset(
-                args.val_path, scale_aug=False, rot_aug=False, num_views=args.num_views
+            val_dataset = ModelNet40Dataset(
+                args.dataset,
+                train=False,
+                num_models=n_models_train,
+                num_views=args.num_views,
             )
-        elif args.dataset == 'shapenet':
+        else:
             train_datset = SNMVDataset(
                 args.train_path,
                 'train',
@@ -229,10 +240,9 @@ if __name__ == "__main__":
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchSize,
-            shuffle=False,
+            shuffle=True,
             num_workers=args.num_workers,
-        )  # shuffle needs to be false! it's done within the trainer
-
+        )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batchSize,
