@@ -6,7 +6,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tools.img_dataset import ModelNet40Dataset, ShapeNet55Dataset
+from tools.img_dataset import ModelNet40Dataset
 from tools.trainer import ModelNetTrainer
 from tools.ShapeNetDataJpg import SNMVDataset
 from models.MVCNN import MVCNN, SVCNN
