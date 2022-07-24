@@ -53,8 +53,7 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-data/modelnet40_images_new_12x
-data/modelnet40_original_12x
+data/modelnet40*
 data/shapenet55v1*
 
 wandb/
