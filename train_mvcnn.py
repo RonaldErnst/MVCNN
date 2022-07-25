@@ -68,7 +68,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'a-shapenet'
+    project_name = 'r-final-shapenet'
 
     args = parser.parse_args()
 
