@@ -118,7 +118,7 @@ class ModelNetTrainer(object):
                     {
                         "val": {
                             "epoch": epoch + 1,
-                            "loss": loss,
+                            "overall_loss": loss,
                             "overall_acc": val_overall_acc,
                             "mean_class_acc": val_mean_class_acc,
                         }

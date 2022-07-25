@@ -330,8 +330,8 @@ class MVCNN(Model):
         if hasattr(self, "pooling"):  # Replace pooling with CNN?
             y = self.pooling(y.view(y.shape[0], -1))
         else:
-            # y = torch.max(y, 1)[0].view(y.shape[0], -1)
-            y = torch.max(y, 1).view(y.shape[0], -1)
+            # y = torch.mean(y, 1).view(y.shape[0], -1)
+            y = torch.max(y, 1)[0].view(y.shape[0], -1)
             # Ideas: Use mean and max only for values higher than std?
 
         return self.net_2(y)
