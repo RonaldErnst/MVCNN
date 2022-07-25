@@ -308,8 +308,8 @@ class MVCNN(Model):
             self.net_2 = model.net_2
 
         # Freeze first part of net to improve training time
-        # for param in self.net_1.parameters():
-        #     param.requires_grad = False
+        for param in self.net_1.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         y = self.net_1(x)
@@ -330,8 +330,8 @@ class MVCNN(Model):
         if hasattr(self, "pooling"):  # Replace pooling with CNN?
             y = self.pooling(y.view(y.shape[0], -1))
         else:
-            # y = torch.max(y, 1)[0].view(y.shape[0], -1)
-            y = torch.max(y, 1).view(y.shape[0], -1)
+            y = torch.max(y, 1)[0].view(y.shape[0], -1)
+            # y = torch.max(y, 1).view(y.shape[0], -1)
             # Ideas: Use mean and max only for values higher than std?
 
         return self.net_2(y)
