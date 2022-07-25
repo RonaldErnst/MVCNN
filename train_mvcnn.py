@@ -67,7 +67,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'r-architecture-tests'
+    project_name = 'PROJECT NAME HERE'
 
     args = parser.parse_args()
 
