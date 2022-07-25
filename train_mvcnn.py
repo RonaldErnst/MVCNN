@@ -6,7 +6,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tools.img_dataset import ModelNet40Dataset, ShapeNet55Dataset
+from tools.img_dataset import ModelNet40Dataset
 from tools.trainer import ModelNetTrainer
 from tools.ShapeNetDataJpg import SNMVDataset
 from models.MVCNN import MVCNN, SVCNN
@@ -124,13 +124,13 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset="train",
                 num_models=n_models_train,
                 num_views=1,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset="val",
                 num_models=n_models_train,
                 num_views=1,
             )
@@ -229,13 +229,13 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset="train",
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset="val",
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
