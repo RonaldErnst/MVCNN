@@ -47,3 +47,25 @@ Askar:
     - use merge-r-i-1
 - Merge datasets: enough time, feasible?
 - Train,Val,Test splits for ModelNet&ShapeNet
+
+# Meeting 5
+Ingo:
+- train convnext_tiny_deep & alexnet on UnifiedDataset
+- Maybe train convnext with extra conv layers
+- Report: Experiments, End / Summary / Future Work
+
+Ronald:
+- Train alexnet and convnext_tiny_deep on Shapenet
+- Report: Method, Related Work
+
+Askar:
+- Train Alexnet and convnext_tiny_deep on ModelNet (shaded)
+- Report: Abstract, Introduction
+
+Alterations:
+- No alterations
+- Mean instead of max
+- No pooling
+- Bigger classification layer
+- Cnn before pooling
+- whatever you can think of
