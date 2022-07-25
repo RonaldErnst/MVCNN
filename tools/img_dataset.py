@@ -242,7 +242,7 @@ class ModelNet40Dataset(torch.utils.data.Dataset):
     def __init__(
         self,
         version,
-        dataset = 'train',
+        dataset='train',
         num_models=0,
         num_views=1,  # num_views = 1 => Singleview; num_views > 1 => Multiview
         shuffle=False
@@ -558,6 +558,7 @@ class ShapeNet55Dataset(torch.utils.data.Dataset):
 
             return (class_id, im, path)
 
+
 class SNMVDatasetBase(torch.utils.data.Dataset):
     def __init__(self, dataset='train', num_models=0, num_views=1, shuffle=False):
         assert dataset in ('train', 'val', 'test')
@@ -605,10 +606,10 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
                 ),
             ]
         )
-    
+
     def __len__(self):
         return int(len(self.filepaths) / self.num_views)
-    
+
     def __getitem__(self, idx):
         jpg_paths, synsetId, subSynsetId = self.filepaths[int(idx * self.num_views)]
         img_array = np.zeros((self.num_views, 3, 224, 224), dtype=np.float32)
@@ -617,20 +618,22 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
             jpg = self.transform(jpg)
             img_array[i] = np.asarray(jpg)
         return self._get_label(synsetId, subSynsetId), img_array.squeeze(), jpg_paths
-    
+
     def _get_label(self, synsetId, _):
         return synsetId
+
 
 class SNMVDataset(SNMVDatasetBase):
     def __init__(self, dataset, num_models, num_views, shuffle):
         super().__init__(dataset, num_models, num_views, shuffle)
-    
+
     def _get_label(self, synsetId, _):
         return self.ids.index(synsetId)
 
 
 class UnifiedDataset(torch.utils.data.Dataset):
-    def __init__(self,
+    def __init__(
+        self,
         modelnet_version,
         dataset='train',
         num_modelnet_models=0,
@@ -639,32 +642,33 @@ class UnifiedDataset(torch.utils.data.Dataset):
         shuffle=False
     ):
         self.modelnet = ModelNet40Dataset(modelnet_version, dataset,
-            num_modelnet_models, num_views, shuffle)
+                                          num_modelnet_models, num_views, shuffle)
         self.shapenet = SNMVDatasetBase(dataset, num_shapenet_models, num_views,
-            shuffle)
+                                        shuffle)
         self.sn_to_mn_dict = {
-            2691156: 'airplane', #'airplane,aeroplane,plane',
-            2808440: 'bathtub', #'bathtub,bathing tub,bath,tub',
-            2818832: 'bed', # 'bed'
-            2828884: 'bench', # 'bench'
+            2691156: 'airplane',  # 'airplane,aeroplane,plane',
+            2808440: 'bathtub',  # 'bathtub,bathing tub,bath,tub',
+            2818832: 'bed',  # 'bed'
+            2828884: 'bench',  # 'bench'
             2843684: 'birdhouse',
-            2871439: 'bookshelf', # 'bookshelf'
-            2876657: 'bottle', # 'bottle'
-            2880940: 'bowl', # 'bowl'
-            2958343: 'car', #'car,auto,automobile,machine,motorcar',
-            3001627: 'chair', #'chair',
-            3085013: 'keyboard', #'computer keyboard,keypad',
-            3211117: 'monitor', #'display,video display',
-            3467517: 'guitar', #'guitar',
-            3636649: 'lamp', #'lamp',
-            3642806: 'laptop', #'laptop,laptop computer',
-            3797390: 'cup', #'mug',
-            3928116: 'piano', #'piano,pianoforte,forte-piano',
-            3991062: 'flower_pot', #'pot,flowerpot',
-            4256520: 'sofa', #'sofa,couch,lounge',
-            4379243: 'table', #'table',
+            2871439: 'bookshelf',  # 'bookshelf'
+            2876657: 'bottle',  # 'bottle'
+            2880940: 'bowl',  # 'bowl'
+            2958343: 'car',  # 'car,auto,automobile,machine,motorcar',
+            3001627: 'chair',  # 'chair',
+            3085013: 'keyboard',  # 'computer keyboard,keypad',
+            3211117: 'monitor',  # 'display,video display',
+            3467517: 'guitar',  # 'guitar',
+            3636649: 'lamp',  # 'lamp',
+            3642806: 'laptop',  # 'laptop,laptop computer',
+            3797390: 'cup',  # 'mug',
+            3928116: 'piano',  # 'piano,pianoforte,forte-piano',
+            3991062: 'flower_pot',  # 'pot,flowerpot',
+            4256520: 'sofa',  # 'sofa,couch,lounge',
+            4379243: 'table',  # 'table',
         }
-        self.shapenet.ids = [id for id in self.shapenet.ids if id not in self.sn_to_mn_dict.keys()]
+        self.shapenet.ids = [id for id in self.shapenet.ids if
+                             id not in self.sn_to_mn_dict.keys()]
 
     def __len__(self):
         return len(self.modelnet) + len(self.shapenet)

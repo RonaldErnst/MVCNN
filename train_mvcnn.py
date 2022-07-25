@@ -67,7 +67,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'PROJECT NAME HERE'
+    project_name = 'r-architecture-tests'
 
     args = parser.parse_args()
 
@@ -124,13 +124,13 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset="train",
                 num_models=n_models_train,
                 num_views=1,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset="val",
                 num_models=n_models_train,
                 num_views=1,
             )
@@ -229,13 +229,13 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset="train",
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset="val",
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
