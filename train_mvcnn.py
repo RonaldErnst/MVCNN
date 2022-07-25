@@ -6,9 +6,8 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tools.img_dataset import ModelNet40Dataset, ShapeNet55Dataset
+from tools.img_dataset import ModelNet40Dataset, SNMVDataset, UnifiedDataset
 from tools.trainer import ModelNetTrainer
-from tools.ShapeNetDataJpg import SNMVDataset
 from models.MVCNN import MVCNN, SVCNN
 
 #############################################
@@ -38,7 +37,7 @@ parser.add_argument(
     "-dataset",
     type=str,
     default="model_shaded",
-    choices=["model_shaded", "model_original", "shapenet"]
+    choices=["model_shaded", "model_original", "shapenet", "unified"]
 )
 parser.add_argument(
     "-num_workers", type=int, default=4
@@ -67,12 +66,17 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'PROJECT NAME HERE'
+    project_name = 'a-shapenet'
 
     args = parser.parse_args()
 
     n_models_train = args.num_models * args.num_views
-    n_classes = 40 if args.dataset.startswith("model") else 55
+    if args.dataset.startswith("model"):
+        n_classes = 40
+    elif args.dataset == "shapenet":
+        n_classes = 55
+    else:
+        n_classes = 75
 
     if not torch.cuda.is_available():
         print("Not using cuda... exiting")
@@ -124,26 +128,41 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset='train',
                 num_models=n_models_train,
                 num_views=1,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset='val',
                 num_models=n_models_train,
                 num_views=1,
             )
-        else:
+        elif args.dataset == 'shapenet':
             train_dataset = SNMVDataset(
-                'data/shapenet55v1',
-                'train',
-                1
+                dataset='train',
+                num_models=n_models_train,
+                num_views=1
             )
             val_dataset = SNMVDataset(
-                'data/shapenet55v1',
-                'val',
-                1
+                dataset='val',
+                num_models=n_models_train,
+                num_views=1
+            )
+        else:
+            train_dataset = UnifiedDataset(
+                args.dataset,
+                dataset='train',
+                num_modelnet_models=int(n_models_train / 2),
+                num_shapenet_models=n_models_train - int(n_models_train / 2),
+                num_views=1,
+            )
+            val_dataset = UnifiedDataset(
+                args.dataset,
+                dataset='val',
+                num_modelnet_models=int(n_models_train / 2),
+                num_shapenet_models=n_models_train - int(n_models_train / 2),
+                num_views=1,
             )
 
         train_loader = torch.utils.data.DataLoader(
@@ -158,8 +177,8 @@ if __name__ == "__main__":
             shuffle=False,
             num_workers=args.num_workers,
         )
-        print("num_train_files: " + str(len(train_dataset.filepaths)))
-        print("num_val_files: " + str(len(val_dataset.filepaths)))
+        print("num_train_files: " + str(len(train_dataset)))
+        print("num_val_files: " + str(len(val_dataset)))
         trainer = ModelNetTrainer(
             cnet,
             train_loader,
@@ -229,26 +248,41 @@ if __name__ == "__main__":
         if args.dataset.startswith("model"):
             train_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=True,
+                dataset='train',
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
-                train=False,
+                dataset='val',
                 num_models=n_models_train,
                 num_views=args.num_views,
             )
-        else:
+        elif args.dataset == 'shapenet':
             train_dataset = SNMVDataset(
-                'data/shapenet55v1',
-                'train',
-                args.num_views
+                dataset='train',
+                num_models=n_models_train,
+                num_views=args.num_views
             )
             val_dataset = SNMVDataset(
-                'data/shapenet55v1',
-                'val',
-                args.num_views
+                dataset='val',
+                num_models=n_models_train,
+                num_views=args.num_views
+            )
+        else:
+            train_dataset = UnifiedDataset(
+                args.dataset,
+                dataset='train',
+                num_modelnet_models=int(n_models_train / 2),
+                num_shapenet_models=n_models_train - int(n_models_train / 2),
+                num_views=args.num_views,
+            )
+            val_dataset = UnifiedDataset(
+                args.dataset,
+                dataset='val',
+                num_modelnet_models=int(n_models_train / 2),
+                num_shapenet_models=n_models_train - int(n_models_train / 2),
+                num_views=args.num_views,
             )
 
         train_loader = torch.utils.data.DataLoader(
@@ -263,8 +297,8 @@ if __name__ == "__main__":
             shuffle=False,
             num_workers=args.num_workers,
         )
-        print("num_train_files: " + str(len(train_dataset.filepaths)))
-        print("num_val_files: " + str(len(val_dataset.filepaths)))
+        print("num_train_files: " + str(len(train_dataset)))
+        print("num_val_files: " + str(len(val_dataset)))
         trainer = ModelNetTrainer(
             cnet_2,
             train_loader,
