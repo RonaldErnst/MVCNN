@@ -568,16 +568,24 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
         with open(os.path.join(dir_path, dataset + '.csv')) as csv:
             csv = pd.read_csv(csv)
         self.filepaths = []
+
         ids = set()
         for item in csv.itertuples(index=False):
             _, id, synsetId, subSynsetId = item
             jpg_path_base = os.path.join(dir_path, dataset, f'model_{id:06d}_')
-            jpg_paths = []
-            if num_views > 0:
+            if num_views > 1:
+                jpg_paths = []
                 for i in range(1, 13, int(12 / num_views)):
                     jpg_paths.append(jpg_path_base + f'{i:03}.jpg')
-            self.filepaths.append((jpg_paths, synsetId, subSynsetId))
+                self.filepaths.append((jpg_paths, synsetId, subSynsetId))
+            else:
+                for i in range(1, 13):
+                    self.filepaths.append(([jpg_path_base + f'{i:03}.jpg'],
+                                           synsetId,
+                                           subSynsetId))
+
             ids.add(synsetId)
+
         if num_models > 0:
             self.filepaths = self.filepaths[: min(num_models,
                                                   len(self.filepaths))]
@@ -618,8 +626,10 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
             jpg = Image.open(path)
             jpg = self.transform(jpg)
             img_array[i] = np.asarray(jpg)
-        return self._get_label(synsetId, subSynsetId), torch.from_numpy(img_array.squeeze()), jpg_paths
-    
+        return (self._get_label(synsetId, subSynsetId),
+                torch.from_numpy(img_array.squeeze()),
+                jpg_paths)
+
     def _get_label(self, synsetId, _):
         return synsetId
 
