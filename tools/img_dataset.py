@@ -579,7 +579,7 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
                 self.filepaths.append((jpg_paths, synsetId, subSynsetId))
             else:
                 for i in range(1, 13):
-                    self.filepaths.append((jpg_path_base + f'{i:03}.jpg', synsetId, subSynsetId))
+                    self.filepaths.append(([jpg_path_base + f'{i:03}.jpg',], synsetId, subSynsetId))
             ids.add(synsetId)
         if num_models > 0:
             self.filepaths = self.filepaths[: min(num_models,
