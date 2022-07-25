@@ -573,8 +573,9 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
             _, id, synsetId, subSynsetId = item
             jpg_path_base = os.path.join(dir_path, dataset, f'model_{id:06d}_')
             jpg_paths = []
-            for i in range(1, 13, int(12 / num_views)):
-                jpg_paths.append(jpg_path_base + f'{i:03}.jpg')
+            if num_views > 0:
+                for i in range(1, 13, int(12 / num_views)):
+                    jpg_paths.append(jpg_path_base + f'{i:03}.jpg')
             self.filepaths.append((jpg_paths, synsetId, subSynsetId))
             ids.add(synsetId)
         if num_models > 0:
@@ -617,14 +618,14 @@ class SNMVDatasetBase(torch.utils.data.Dataset):
             jpg = Image.open(path)
             jpg = self.transform(jpg)
             img_array[i] = np.asarray(jpg)
-        return self._get_label(synsetId, subSynsetId), img_array.squeeze(), jpg_paths
-
+        return self._get_label(synsetId, subSynsetId), torch.from_numpy(img_array.squeeze()), jpg_paths
+    
     def _get_label(self, synsetId, _):
         return synsetId
 
 
 class SNMVDataset(SNMVDatasetBase):
-    def __init__(self, dataset, num_models, num_views, shuffle):
+    def __init__(self, dataset='train', num_models=0, num_views=1, shuffle=False):
         super().__init__(dataset, num_models, num_views, shuffle)
 
     def _get_label(self, synsetId, _):
@@ -678,8 +679,11 @@ class UnifiedDataset(torch.utils.data.Dataset):
             return self.modelnet[idx]
         else:
             label, img, paths = self.shapenet[idx - len(self.modelnet)]
+            if not self.modelnet.is_multiview:
+                paths = paths[0]
             if label in self.sn_to_mn_dict:
                 label = self.sn_to_mn_dict[label]
                 label = self.modelnet.classnames.index(label)
-            label = len(self.modelnet.classnames) + self.shapenet.ids.index(label)
+            else:
+                label = len(self.modelnet.classnames) + self.shapenet.ids.index(label)
             return label, img, paths
