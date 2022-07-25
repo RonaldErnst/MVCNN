@@ -55,6 +55,8 @@ docs/_build/
 
 data/modelnet40*
 data/shapenet55v1*
+data/old_data*
+data/*.tar*
 
 wandb/
 runs/*
