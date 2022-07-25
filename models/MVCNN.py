@@ -199,7 +199,15 @@ class SVCNN(Model):
 
 
 class MVCNN(Model):
-    def __init__(self, name, model, nclasses=40, cnn_name="resnet18", num_views=12):
+    def __init__(
+                self,
+                name,
+                model,
+                alterations,
+                nclasses=40,
+                cnn_name="resnet18",
+                num_views=12,
+                ):
         super(MVCNN, self).__init__(name)
 
         self.classnames = [
@@ -248,6 +256,12 @@ class MVCNN(Model):
         self.nclasses = nclasses
         self.num_views = num_views
         self.cnn_name = cnn_name
+        self.alterations = alterations
+
+        if len(self.alterations) != 0 \
+           and self.cnn_name not in ("alexnet", "convnext_tiny_deep"):
+            raise Exception("Alterations only for AlexNet and ConvNext_tiny_deep!")
+
         self.mean = Variable(
             torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False
         ).cuda()
@@ -291,25 +305,57 @@ class MVCNN(Model):
             else:
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.net_2 = model.net.fc
-
-            if self.cnn_name == "resnet18_nopool":
-                self.pooling = nn.Sequential(
-                    nn.Linear(12 * 512, 4096),
-                    nn.ReLU(),
-                    nn.Dropout(),
-                    nn.Linear(4096, 4096),
-                    nn.ReLU(),
-                    nn.Dropout(),
-                    nn.Linear(4096, 512),
-                    nn.ReLU(),
-                )
         else:
             self.net_1 = model.net_1
             self.net_2 = model.net_2
 
+        if "nopool" in self.alterations:
+            in_features = 768 if self.cnn_name == "convnext_tiny_deep" else 9216
+            self.pooling = nn.Sequential(
+                nn.Linear(12 * in_features, 4096),
+                nn.ReLU(),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(),
+                nn.Dropout(),
+                nn.Linear(4096, in_features),
+                nn.ReLU(),
+            )
+
+        if "prepool" in self.alterations:
+            channels = 768 if self.cnn_name == "convnext_tiny_deep" else 256
+            self.prepool = nn.Sequential(
+                        nn.Conv2d(channels, int(channels / 2), 1),
+                        nn.ReLU(),
+                        nn.Conv2d(int(channels / 2), int(channels / 4), 1),
+                        nn.ReLU(),
+                        nn.Conv2d(int(channels / 4), int(channels / 4), 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(int(channels / 4), int(channels / 4), 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(int(channels / 4), int(channels / 2), 1),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(int(channels / 2), channels, 1),
+                        nn.ReLU(),
+                    )
+
+        if "postpool" in self.alterations:
+            in_features = 768 if self.cnn_name == "convnext_tiny_deep" else 9216
+            self.postpool = nn.Sequential(
+                            nn.Linear(in_features, 4096),
+                            nn.ReLU(),
+                            nn.Dropout(),
+                            nn.Linear(4096, 4096),
+                            nn.ReLU(),
+                            nn.Dropout(),
+                            nn.Linear(4096, in_features),
+                            nn.ReLU(),
+                        )
+
         # Freeze first part of net to improve training time
-        for param in self.net_1.parameters():
-            param.requires_grad = False
+        if "freeze" in self.alterations:
+            for param in self.net_1.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         y = self.net_1(x)
@@ -330,8 +376,12 @@ class MVCNN(Model):
         if hasattr(self, "pooling"):  # Replace pooling with CNN?
             y = self.pooling(y.view(y.shape[0], -1))
         else:
-            y = torch.max(y, 1)[0].view(y.shape[0], -1)
-            # y = torch.max(y, 1).view(y.shape[0], -1)
-            # Ideas: Use mean and max only for values higher than std?
+            if "mean" in self.alterations:
+                y = torch.mean(y, 1).view(y.shape[0], -1)
+            else:
+                y = torch.max(y, 1)[0].view(y.shape[0], -1)
+
+        if hasattr(self, "postpool"):
+            y = self.postpool(y)
 
         return self.net_2(y)

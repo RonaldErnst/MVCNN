@@ -49,6 +49,8 @@ parser.add_argument("-stage", type=int, required=True, choices=[1, 2])
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-svcnn_arc", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
+parser.add_argument("-alterations", type=str, nargs="+", default=[],
+                    choices=["nopool", "mean", "prepool", "postpool", "freeze"])
 parser.set_defaults(train=False)
 
 
@@ -229,6 +231,7 @@ if __name__ == "__main__":
         cnet_2 = MVCNN(
             args.name,
             cnet,
+            alterations=args.alterations,
             nclasses=n_classes,
             cnn_name=args.cnn_name,
             num_views=args.num_views
