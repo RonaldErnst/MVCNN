@@ -63,9 +63,8 @@ Askar:
 - Report: Abstract, Introduction
 
 Alterations:
-- No alterations
 - Mean instead of max
-- No pooling
+- CNN instead of pooling
 - Bigger classification layer
 - Cnn before pooling
 - whatever you can think of
