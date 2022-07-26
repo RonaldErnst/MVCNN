@@ -1,3 +1,4 @@
+from tkinter import W
 import numpy as np
 import pandas as pd
 import os
@@ -61,8 +62,18 @@ if __name__ == "__main__":
     source_dirs = {id: snp('train') for id in train['id']}
     source_dirs.update({id: snp('val') for id in val['id']})
 
-    cat = cat.sample(frac=1, random_state=10538)
-    train, val, test = np.split(cat, [int(0.6 * len(cat)), int(0.8 * len(cat))])
+    train = []
+    val = []
+    test = []
+    for cls in cat['synsetId'].unique():
+        cls_df = cat[cat['synsetId'] == cls]
+        cls_train, cls_val, cls_test = np.split(cls_df, [int(0.6 * len(cls_df)), int(0.8 * len(cls_df))])
+        train += cls_train.values.tolist()
+        val += cls_val.values.tolist()
+        test += cls_test.values.tolist()
+    train = pd.DataFrame(train, columns=cat.columns)
+    val = pd.DataFrame(val, columns=cat.columns)
+    test = pd.DataFrame(test, columns=cat.columns)
 
     train.to_csv(snp('train.csv'))
     val.to_csv(snp('val.csv'))
