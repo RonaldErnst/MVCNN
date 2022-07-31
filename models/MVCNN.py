@@ -92,7 +92,7 @@ class SVCNN(Model):
                     nn.ReLU(),
                     nn.Linear(4096, 4096),
                     nn.ReLU(),
-                    nn.Linear(4096, self.nclasses)
+                    nn.Linear(4096, self.nclasses),
                 )
             elif self.cnn_name == "resnet18_frozen":
                 self.net = models.resnet18(pretrained=self.pretraining)
@@ -153,7 +153,7 @@ class SVCNN(Model):
                     *list(net.children())[:-1],
                     # Skip Flatten & last linear layer in classifier
                     *list(net.classifier.children())[:-2]
-                    )
+                )
                 in_features = list(net.classifier.children())[-1].in_features
                 self.net_2 = nn.Linear(in_features, self.nclasses)
             elif self.cnn_name == "convnext_tiny_deep":
@@ -162,7 +162,7 @@ class SVCNN(Model):
                     *list(net.children())[:-1],
                     # Skip Flatten & last linear layer in classifier
                     *list(net.classifier.children())[:-2]
-                    )
+                )
                 last_layer = list(net.classifier.children())[-1]
                 in_features = last_layer.in_features
                 self.net_2 = nn.Sequential(
@@ -200,14 +200,14 @@ class SVCNN(Model):
 
 class MVCNN(Model):
     def __init__(
-                self,
-                name,
-                model,
-                alterations,
-                nclasses=40,
-                cnn_name="resnet18",
-                num_views=12,
-                ):
+        self,
+        name,
+        model,
+        alterations,
+        nclasses=40,
+        cnn_name="resnet18",
+        num_views=12,
+    ):
         super(MVCNN, self).__init__(name)
 
         self.classnames = [
@@ -258,9 +258,14 @@ class MVCNN(Model):
         self.cnn_name = cnn_name
         self.alterations = alterations
 
-        if len(self.alterations) != 0 \
-           and self.cnn_name not in ("alexnet", "convnext_tiny_deep"):
-            raise Exception("Alterations only for AlexNet and ConvNext_tiny_deep!")
+        allowed_arcs = [
+            "alexnet",
+            "convnext_tiny_deep",
+            "resnet18",
+            "resnet18_deep"
+        ]
+        if len(self.alterations) != 0 and self.cnn_name not in allowed_arcs:
+            raise Exception(f"Alterations only for {allowed_arcs}!")
 
         self.mean = Variable(
             torch.FloatTensor([0.485, 0.456, 0.406]), requires_grad=False
@@ -275,33 +280,33 @@ class MVCNN(Model):
             if self.cnn_name == "resnet18_prepool":
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.prepool = nn.Sequential(
-                        nn.Conv2d(512, 256, 1),
-                        nn.ReLU(),
-                        nn.Conv2d(256, 128, 1),
-                        nn.ReLU(),
-                        nn.Conv2d(128, 64, 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(64, 128, 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(128, 256, 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(256, 512, 1),
-                        nn.ReLU(),
-                    )
+                    nn.Conv2d(512, 256, 1),
+                    nn.ReLU(),
+                    nn.Conv2d(256, 128, 1),
+                    nn.ReLU(),
+                    nn.Conv2d(128, 64, 1),
+                    nn.ReLU(),
+                    nn.ConvTranspose2d(64, 128, 1),
+                    nn.ReLU(),
+                    nn.ConvTranspose2d(128, 256, 1),
+                    nn.ReLU(),
+                    nn.ConvTranspose2d(256, 512, 1),
+                    nn.ReLU(),
+                )
                 self.net_2 = model.net.fc
             elif self.cnn_name == "resnet18_postpool":
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.net_2 = nn.Sequential(
-                            nn.Linear(512, 4096),
-                            nn.ReLU(),
-                            nn.Dropout(),
-                            nn.Linear(4096, 4096),
-                            nn.ReLU(),
-                            nn.Dropout(),
-                            nn.Linear(4096, 512),
-                            nn.ReLU(),
-                            model.net.fc
-                        )
+                    nn.Linear(512, 4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 4096),
+                    nn.ReLU(),
+                    nn.Dropout(),
+                    nn.Linear(4096, 512),
+                    nn.ReLU(),
+                    model.net.fc,
+                )
             else:
                 self.net_1 = nn.Sequential(*list(model.net.children())[:-1])
                 self.net_2 = model.net.fc
@@ -310,7 +315,13 @@ class MVCNN(Model):
             self.net_2 = model.net_2
 
         if "nopool" in self.alterations:
-            in_features = 768 if self.cnn_name == "convnext_tiny_deep" else 9216
+            if self.cnn_name == "convnext_tiny_deep":
+                in_features = 768
+            elif self.cnn_name == "resnet18" or self.cnn_name == "resnet18_deep":
+                in_features = 512
+            else:
+                in_features = 9216
+
             self.pooling = nn.Sequential(
                 nn.Linear(12 * in_features, 4096),
                 nn.ReLU(),
@@ -323,34 +334,46 @@ class MVCNN(Model):
             )
 
         if "prepool" in self.alterations:
-            channels = 768 if self.cnn_name == "convnext_tiny_deep" else 256
+            if self.cnn_name == "convnext_tiny_deep":
+                channels = 768
+            elif self.cnn_name == "resnet18" or self.cnn_name == "resnet18_deep":
+                channels = 512
+            else:
+                channels = 256
+
             self.prepool = nn.Sequential(
-                        nn.Conv2d(channels, int(channels / 2), 1),
-                        nn.ReLU(),
-                        nn.Conv2d(int(channels / 2), int(channels / 4), 1),
-                        nn.ReLU(),
-                        nn.Conv2d(int(channels / 4), int(channels / 4), 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(int(channels / 4), int(channels / 4), 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(int(channels / 4), int(channels / 2), 1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(int(channels / 2), channels, 1),
-                        nn.ReLU(),
-                    )
+                nn.Conv2d(channels, int(channels / 2), 1),
+                nn.ReLU(),
+                nn.Conv2d(int(channels / 2), int(channels / 4), 1),
+                nn.ReLU(),
+                nn.Conv2d(int(channels / 4), int(channels / 4), 1),
+                nn.ReLU(),
+                nn.ConvTranspose2d(int(channels / 4), int(channels / 4), 1),
+                nn.ReLU(),
+                nn.ConvTranspose2d(int(channels / 4), int(channels / 2), 1),
+                nn.ReLU(),
+                nn.ConvTranspose2d(int(channels / 2), channels, 1),
+                nn.ReLU(),
+            )
 
         if "postpool" in self.alterations:
-            in_features = 768 if self.cnn_name == "convnext_tiny_deep" else 9216
+            if self.cnn_name == "convnext_tiny_deep":
+                in_features = 768
+            elif self.cnn_name == "resnet18" or self.cnn_name == "resnet18_deep":
+                in_features = 512
+            else:
+                in_features = 9216
+
             self.postpool = nn.Sequential(
-                            nn.Linear(in_features, 4096),
-                            nn.ReLU(),
-                            nn.Dropout(),
-                            nn.Linear(4096, 4096),
-                            nn.ReLU(),
-                            nn.Dropout(),
-                            nn.Linear(4096, in_features),
-                            nn.ReLU(),
-                        )
+                nn.Linear(in_features, 4096),
+                nn.ReLU(),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(),
+                nn.Dropout(),
+                nn.Linear(4096, in_features),
+                nn.ReLU(),
+            )
 
         # Freeze first part of net to improve training time
         if "freeze" in self.alterations:
