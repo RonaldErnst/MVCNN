@@ -68,3 +68,21 @@ Alterations:
 - Bigger classification layer
 - Cnn before pooling
 - whatever you can think of
+
+# Meetings 6
+Ingo:
+- Prepare presentation
+- Train & test resnet with nopool and mean on unified
+- Finish report parts
+
+Ronald:
+- Test convnext on shapenet
+- Train VGG16 on shapenet no alterations
+- If time allows do convnext with mean and no pool again for 20 epochs
+- Know everything on a basic level
+
+Askar:
+- Test Modelnet networks
+- Train & test resnet18 with mean and no pool on modelnet
+- Know everything on a basic level
+- Finish report parts
