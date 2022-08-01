@@ -57,6 +57,9 @@ data/modelnet40*
 data/shapenet55v1*
 data/old_data*
 data/*.tar*
+data/for_plots/*
+!data/for_plots/plotter.ipynb
+!data/for_plots/plots
 
 wandb/
 runs/*

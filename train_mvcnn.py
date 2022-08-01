@@ -68,7 +68,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'r-resnet-shapenet'
+    project_name = 'i-unified'
 
     args = parser.parse_args()
 
