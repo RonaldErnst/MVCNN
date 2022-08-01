@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tools.img_dataset import ModelNet40Dataset, SNMVDataset, UnifiedDataset
-from tools.trainer import ModelNetTrainer
+from tools.trainer import ModelNetTrainer, ModelNetTester
 from models.MVCNN import MVCNN, SVCNN
 
 #############################################
@@ -23,7 +23,7 @@ parser.add_argument(
     "-bs", "--batchSize", type=int, help="Batch size for the second stage", default=4
 )  # it will be *12 images in each batch for mvcnn
 parser.add_argument(
-    "-num_models", type=int, help="number of models per class", default=10000
+    "-num_models", type=int, help="number of models per class", default=0
 )
 parser.add_argument("-lr", type=float, help="learning rate", default=5e-5)
 parser.add_argument("-weight_decay", type=float, help="weight decay", default=0.0)
@@ -45,7 +45,7 @@ parser.add_argument(
 parser.add_argument(
     "-num_epochs", type=int, default=1
 )
-parser.add_argument("-stage", type=int, required=True, choices=[1, 2])
+parser.add_argument("-stage", type=str, required=True, choices=["1", "2", "test"])
 parser.add_argument("-svcnn_name", type=str, default="")
 parser.add_argument("-svcnn_arc", type=str, default="")
 parser.add_argument("-resume_id", type=str, default="")
@@ -68,7 +68,7 @@ def create_folder(log_dir, throw_err=True):
 
 
 if __name__ == "__main__":
-    project_name = 'a-shapenet'
+    project_name = 'r-resnet-shapenet'
 
     args = parser.parse_args()
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     elif args.dataset == "shapenet":
         n_classes = 55
     else:
-        n_classes = 75
+        n_classes = 76
 
     if not torch.cuda.is_available():
         print("Not using cuda... exiting")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     json.dump(vars(args), config_f)
     config_f.close()
 
-    if args.stage == 1:
+    if args.stage == "1":
         wandb.init(
             id=args.resume_id,
             project=project_name,
@@ -133,12 +133,14 @@ if __name__ == "__main__":
                 dataset='train',
                 num_models=n_models_train,
                 num_views=1,
+                shuffle=True,
             )
             val_dataset = ModelNet40Dataset(
                 args.dataset,
                 dataset='val',
                 num_models=n_models_train,
                 num_views=1,
+                shuffle=True,
             )
         elif args.dataset == 'shapenet':
             train_dataset = SNMVDataset(
@@ -194,7 +196,7 @@ if __name__ == "__main__":
         trainer.train(args.num_epochs)
         wandb.finish()
 
-    elif args.stage == 2:
+    elif args.stage == "2":
         # STAGE 2
         if args.svcnn_name == "" or args.svcnn_arc == "":
             print("SVCNN Model name and architecture required")
@@ -313,4 +315,83 @@ if __name__ == "__main__":
             num_views=args.num_views,
         )
         trainer.train(args.num_epochs)
+        wandb.finish()
+
+    elif args.stage == "test":
+        if args.svcnn_arc == "":
+            print("SVCNN Model architecture required")
+            sys.exit()
+
+        wandb.init(
+            project=project_name,
+            entity="icheler-team",
+            name=f"{args.name}_stage_test",
+            tags=["test"],
+            config={
+                "name": args.name,
+                "batch_size": args.batchSize,
+                "cnn_name": args.cnn_name,
+            },
+        )
+
+        cnet = SVCNN(
+            "Test SVCNN",
+            nclasses=n_classes,
+            pretraining=False,
+            cnn_name=args.svcnn_arc
+        )
+
+        cnet_2 = MVCNN(
+            args.name,
+            cnet,
+            alterations=args.alterations,
+            nclasses=n_classes,
+            cnn_name=args.cnn_name,
+            num_views=args.num_views
+        )
+
+        cnet_2.load(f"runs/{args.name}/stage_2")
+
+        del cnet
+
+        if args.dataset.startswith("model"):
+            test_dataset = ModelNet40Dataset(
+                args.dataset,
+                dataset='test',
+                num_models=n_models_train,
+                num_views=args.num_views,
+            )
+        elif args.dataset == 'shapenet':
+            test_dataset = SNMVDataset(
+                dataset='test',
+                num_models=n_models_train,
+                num_views=args.num_views
+            )
+        else:
+            test_dataset = UnifiedDataset(
+                args.dataset,
+                dataset='test',
+                num_modelnet_models=int(n_models_train / 2),
+                num_shapenet_models=n_models_train - int(n_models_train / 2),
+                num_views=args.num_views,
+            )
+
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset,
+            batch_size=args.batchSize,
+            shuffle=False,
+            num_workers=args.num_workers,
+        )
+
+        tester = ModelNetTester(
+            cnet_2,
+            test_loader,
+            nn.CrossEntropyLoss(),
+            log_dir,
+            num_views=args.num_views,
+        )
+
+        print("num_test_files: " + str(len(test_dataset)))
+
+        tester.test()
         wandb.finish()
