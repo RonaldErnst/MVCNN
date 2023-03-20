@@ -1,34 +1,51 @@
-# MVCNN
+# MVCNN modifications
 
-# How to freeze layers [pytorch link](https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#convnet-as-fixed-feature-extractor)
+## Introduction
+
+This project was completed by three contributors (@RonaldErnst, @kolusask, @Icheler) as part of our studies @TUM. It was part of the course Machine Learning for 3D Geometry.
+
+We worked on an addition to [MVCNN][1] by modifying the CNN-layers to more up to date pre-trained networks. In addition we changed the base dataset by merging ['ShapeNet'][2] and ['ModelNet'][3] into a new dataset which we called 'Unified'. Additionally we modified the underlying architecture by modifying the pooling operation and changing its location to see changes in performance.
+
+## Architecture overview
+
+![Architecture](imgs/architecture.png)
+
+The base model uses a VGG-16 like feature extractor for CNN1. We added multiple different more state of the art pre-trained CNNs to see how much impact the changing of the extraction model has on modelperformance. In addition we also modified the pooling operation from Max-Pooling in all baselines to for example mean-pooling.
+
+Model training performance for stage 1 on ModelNet with shaded images:
+
+![Stage 1](imgs/stage1.png)
+
+Model training performance for stage 2 on ModelNet with shaded images:
+
+![Stage 2](imgs/stage2.png)
+
+|  Architecture  | ModelNet      | Unified |
+|:--------:|----------------|--------|
+| VGG-16 | 95.03 | 85.37 |
+| ConvNext | 95.64 | 85.92 |
+| ResNet-18 | 94.95 | 85.86 |
+| ResNet-18 with Mean-Pool | 94.75 | 87.30 |
+
+## Installation
+
+The environment.yml file has all the necessary dependencies to train the model yourself if you have [conda][4] installed.
+
+``` bash
+
+conda env create -f environment.yml
+
 ```
-for param in model.parameters():
-    param.requires_grad = False
 
-# Parameters of newly constructed modules have requires_grad=True by default
-num_ftrs = model.last_layer.in_features
-model.last_layer = nn.Linear(num_ftrs, num_classes)
+## How to use the code
 
-model = model.to(device)
-```
-For more complex situations (nn.Sequence for example)
-```
-model_conv.classifier._modules["2"] = nn.Linear(num_ftrs, num_classes)
-```
+The datasets have to be downloaded manually and then prepared using prepare_modelnet/shapenet_data.py from the tools folder.
 
-# NEW FOR TRAINING
-- Training the stages is done seperately
-- Training can be resumed
+If wanted you can set up training to use wandb to have an online performance model save.
 
-# Changes made to the train_mvcnn script
-- Batch Size and number of epochs has to be set explicitly via arguments.<br>
-    Otherwise they will default to 4 and 1 respectively (-bs & -num_epochs)
-- DataLoader workers can be set too. Default: 4 (-num_workers)
-- Dataset can be specified now too. Default: "model_shaded" (-dataset) <br>
-    ("... -dataset model_original/model_shaded/shapenet")
-- Stage for training has to be specified (-stage)
-- Specify which model (run folder) should be used for stage 2 <br>
-    ("... -svcnn_name convnext_tiny_2" to use stage 1 of /runs/convnext_tiny_2/stage_1)
-- This also requires the model architecture to properly create the SVCNN<br>
-    ("... -svcnn_name convnext_tiny_2 -svcnn_arc convnext_tiny")
-- When continuing, specify wandb ID (e.g. "... -resume_id vyrf9ok7")
+Then models can be trained using train_mvcnn.py. For arguments used during cli-training please check train_mvcnn.py directly for the most up-to-date version of the CLI arguments.
+
+[1]: https://doi.org/10.48550/arXiv.1505.00880
+[2]: https://shapenet.org/
+[3]: https://modelnet.cs.princeton.edu/
+[4]: https://docs.conda.io/en/latest/

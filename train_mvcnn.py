@@ -10,10 +10,6 @@ from tools.img_dataset import ModelNet40Dataset, SNMVDataset, UnifiedDataset
 from tools.trainer import ModelNetTrainer, ModelNetTester
 from models.MVCNN import MVCNN, SVCNN
 
-#############################################
-# I MADE CHANGES: PLEASE LOOK AT THE README #
-#############################################
-
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-name", "--name", type=str, help="Name of the experiment",
